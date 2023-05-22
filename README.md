@@ -7,4 +7,4 @@ Wazuh solution consists of an endpoint security agent, deployed to the monitored
 
 (TBC...)
 
-(test info for git use)
+(5/22 test info for git use)
