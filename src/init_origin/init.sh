@@ -1,13 +1,14 @@
 #!/bin/sh
 
-# ************ Line:7-51 ************
+# Init functions for Wazuh
+# Copyright (C) 2015, Wazuh Inc.
+# Author: Daniel B. Cid <daniel.cid@gmail.com>
+
 UN=${NUNAME};
 service="wazuh";
 
 runInit()
 {
-    echo "########### JNote : running on init.sh : runInit() ###########"
-
     echo ""
     echo ""
 
@@ -44,6 +45,73 @@ runInit()
         if [ "X${update_only}" = "X" ]
         then
             systemctl enable "wazuh-"$type
+        fi
+
+        return 0;
+    fi
+
+    # Checking if it is a Redhat system.
+    if [ -r "/etc/redhat-release" ]; then
+        if [ -d /etc/rc.d/init.d ]; then
+            echo " - ${systemis} Redhat Linux."
+            echo " - ${modifiedinit}"
+            GenerateService ossec-hids-rh.init > /etc/rc.d/init.d/${service}
+            chmod 755 /etc/rc.d/init.d/${service}
+            chown root:wazuh /etc/rc.d/init.d/${service}
+
+            if [ "X${update_only}" = "X" ]
+            then
+                /sbin/chkconfig --add ${service} > /dev/null 2>&1
+            fi
+
+            return 0;
+        fi
+    fi
+    # Checking for Gentoo
+    if [ -r "/etc/gentoo-release" ]; then
+        echo " - ${systemis} Gentoo Linux."
+        echo " - ${modifiedinit}"
+        GenerateService ossec-hids-gentoo.init > /etc/init.d/${service}
+        chmod 755 /etc/init.d/${service}
+        chown root:wazuh /etc/init.d/${service}
+
+        if [ "X${update_only}" = "X" ]
+        then
+            rc-update add ${service} default
+        fi
+
+        return 0;
+    fi
+
+    # Suse
+    if [ -r "/etc/SuSE-release" ]; then
+        echo " - ${systemis} Suse Linux."
+        echo " - ${modifiedinit}"
+        GenerateService ossec-hids-suse.init > /etc/init.d/${service}
+        chmod 755 /etc/init.d/${service}
+        chown root:wazuh /etc/init.d/${service}
+
+        if [ "X${update_only}" = "X" ]
+        then
+            /sbin/chkconfig --add ${service} > /dev/null 2>&1
+        fi
+
+        return 0;
+    fi
+
+    # Checking for slackware (by Jack S. Lai)
+    if [ -r "/etc/slackware-version" ]; then
+        echo " - ${systemis} Slackware Linux."
+        echo " - ${modifiedinit}"
+        GenerateService ossec-hids.init > /etc/rc.d/rc.${service}
+        chmod 755 /etc/rc.d/rc.${service}
+        chown root:wazuh /etc/rc.d/rc.${service}
+
+        grep ${service} /etc/rc.d/rc.local > /dev/null 2>&1
+        if [ $? != 0 ]; then
+            echo "if [ -x /etc/rc.d/rc.${service} ]; then" >> /etc/rc.d/rc.local
+            echo "      /etc/rc.d/rc.${service} start" >>/etc/rc.d/rc.local
+            echo "fi" >>/etc/rc.d/rc.local
         fi
 
         return 0;
@@ -134,7 +202,6 @@ runInit()
             return 0;
         # Taken from Stephen Bunn ossec howto.
         elif [ -d "/etc/init.d" -a -f "/usr/sbin/update-rc.d" ]; then
-            echo "########### JNote : running on init.sh : init() Ubuntu part as expectation ###########"
             echo " - ${systemis} Debian (Ubuntu or derivative)."
             echo " - ${modifiedinit}"
             GenerateService ossec-hids-debian.init > /etc/init.d/${service}

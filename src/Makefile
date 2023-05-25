@@ -71,9 +71,10 @@ EXTERNAL_RPM=external/rpm/
 EXTERNAL_POPT=external/popt/
 endif
 
-# ************ Line:77-78 ************ WAZUH_GROUP,WAZUH_USER 相關的設定
+# ************ Line:77-79 ************ WAZUH_GROUP,WAZUH_USER,SHARED 相關的設定
 WAZUH_GROUP?=wazuh
 WAZUH_USER?=wazuh
+SHARED=so
 
 
 # ************ Line:82-85 ************ SELINUX_MODULE,SELINUX_ENFORCEMENT,SELINUX_POLICY,SHARED_MODULES,RSYNC,DBSYNC 相關的設定
@@ -102,11 +103,11 @@ endif
 
 # ************ Line:135-143 ************ USE_SELINUX 相關的設定
 ifneq ($(HAS_CHECKMODULE),)
-ifneq ($(HAS_SEMODULE_PACKAGE),)
-USE_SELINUX=yes
-else
-USE_SELINUX=no
-endif
+	ifneq ($(HAS_SEMODULE_PACKAGE),)
+	USE_SELINUX=yes
+	else
+	USE_SELINUX=no
+	endif
 else
 USE_SELINUX=no
 endif
@@ -258,6 +259,8 @@ endif
 endif
 endif
 
+endif #winagent
+
 # ************ Line:446-447 ************ OSSEC_CC, OSSEC_CCBIN 相關的設定
 OSSEC_CC      =${QUIET_CC}${MING_BASE}${CC}
 OSSEC_CCBIN   =${QUIET_CCBIN}${MING_BASE}${CC}
@@ -378,6 +381,45 @@ ifdef DATABASE
 	endif # mysql
 endif # DATABASE
 
+
+# ************ Line:573-609 ************ Target
+####################
+#### Target ########
+####################
+
+ifndef TARGET
+	TARGET=failtarget
+endif # TARGET
+
+ifeq (${TARGET},agent)
+	DEFINES+=-DCLIENT
+endif
+
+ifeq (${TARGET},local)
+	DEFINES+=-DLOCAL
+endif
+
+.PHONY: build
+build: ${TARGET}
+ifneq (${TARGET},failtarget)
+	${MAKE} settings
+	@echo
+	${QUIET_NOTICE}
+	@echo "Done building ${TARGET}"
+	${QUIET_ENDCOLOR}
+endif
+	@echo
+
+.PHONY: failtarget
+failtarget:
+	@echo "TARGET is required: "
+	@echo "   make TARGET=server   to build the server"
+	@echo "   make TARGET=local      - local version of server"
+	@echo "   make TARGET=hybrid     - hybrid version of server"
+	@echo "   make TARGET=agent    to build the unix agent"
+	@echo "   make TARGET=winagent to build the windows agent"
+
+# ************ Line:655-697 ************ 有關 Setting 的設定
 .PHONY: settings
 settings:
 	@echo
@@ -431,11 +473,11 @@ BUILD_AGENT+=agent-auth
 
 
 # ************ Line:729-733 ************ BUILD_CMAKE_PROJECTS 相關的設定
-BUILD_CMAKE_PROJECTS+=build_sysinfo
-BUILD_CMAKE_PROJECTS+=build_shared_modules
-ifeq (,$(filter ${DISABLE_SYSC},YES yes y Y 1))
-BUILD_CMAKE_PROJECTS+=build_syscollector
-endif
+#BUILD_CMAKE_PROJECTS+=build_sysinfo
+#BUILD_CMAKE_PROJECTS+=build_shared_modules
+#ifeq (,$(filter ${DISABLE_SYSC},YES yes y Y 1))
+#BUILD_CMAKE_PROJECTS+=build_syscollector
+#endif
 
 # ************ Line:735-741 ************ 還不知道要不要留
 ${WAZUH_LIB_OUTPUT_PATH}${LIBSTDCPP_NAME}: ${libstdc++_path}
@@ -448,21 +490,29 @@ ${WAZUH_LIB_OUTPUT_PATH}${LIBGCC_S_NAME}: ${libgcc_s_path}
 
 
 # ************ Line:743-789 ************ make agent/server 相關
-.PHONY: server agent # 被註解掉的 : local hybrid  selinux
+.PHONY: server agent # JNote : 被註解掉的 : local hybrid selinux
 
 ifeq (${MAKECMDGOALS},server)
 $(error Do not use 'server' directly, use 'TARGET=server')
 endif
+
+#server: external ${CPPLIBDEPS}
+#	${MAKE} ${BUILD_SERVER} ${BUILD_CMAKE_PROJECTS}
+
+# JNote : 原始的是上面那行，但BUILD_CMAKE_PROJECTS被註解掉了
 server: external ${CPPLIBDEPS}
-	${MAKE} ${BUILD_SERVER} ${BUILD_CMAKE_PROJECTS}
+	${MAKE} ${BUILD_SERVER}
 
 ifeq (${MAKECMDGOALS},agent)
 $(error Do not use 'agent' directly, use 'TARGET=agent')
 endif
 agent: external ${CPPLIBDEPS}
-ifneq (${uname_S},HP-UX)
-	${MAKE} ${BUILD_CMAKE_PROJECTS}
-endif
+
+# JNote : 這邊被我註解調，不要build cmake 的project
+#ifneq (${uname_S},HP-UX)
+#	${MAKE} ${BUILD_CMAKE_PROJECTS}
+#
+#endif
 	${MAKE} ${BUILD_AGENT}
 
 ifneq (,$(filter ${USE_SELINUX},YES yes y Y 1))
@@ -484,6 +534,224 @@ ifeq (${MAKECMDGOALS},winagent)
 $(error Do not use 'winagent' directly, use 'TARGET=winagent')
 endif
 
+# ************ Line:1183-1248 ************ addagent 的功能
+################################
+#### External dependencies  ####
+################################
+
+TAR := tar -xf
+GUNZIP := gunzip
+GZIP := gzip
+CURL := curl -so
+DEPS_VERSION = 20
+RESOURCES_URL := https://packages.wazuh.com/deps/$(DEPS_VERSION)
+CPYTHON := cpython
+PYTHON_SOURCE := no
+
+ifneq (${TARGET}, winagent)
+	ifneq (,$(filter ${uname_S},Linux Darwin HP-UX))
+		cpu_arch := ${uname_M}
+		ifneq (,$(filter ${cpu_arch},x86_64 amd64))
+			PRECOMPILED_ARCH := /amd64
+		else
+		ifneq (,$(filter ${cpu_arch},i386 i686))
+			PRECOMPILED_ARCH := /i386
+		else
+		ifneq (,$(filter ${cpu_arch},aarch64 arm64))
+			PRECOMPILED_ARCH := /aarch64
+		else
+		ifneq (,$(filter ${cpu_arch},armv8l armv7l arm32 armhf))
+			PRECOMPILED_ARCH := /arm32
+		else
+		ifeq (${cpu_arch},ppc64le)
+			PRECOMPILED_ARCH := /ppc64le
+		else
+		ifneq (,$(filter ${cpu_arch},ia64))
+			PRECOMPILED_ARCH := /ia64
+		else
+			PRECOMPILED_ARCH := /${uname_P}
+		endif
+		endif
+		endif
+		endif
+		endif
+		endif
+	else
+	ifneq (,$(filter ${uname_S},SunOS AIX))
+		cpu_arch := ${uname_P}
+		ifeq (${cpu_arch},powerpc)
+			PRECOMPILED_ARCH := /powerpc
+		else
+		ifneq (,$(filter ${cpu_arch},sparc sun4u))
+			PRECOMPILED_ARCH := /sparc
+		else
+		ifneq (,$(filter ${cpu_arch},i386 i86pc))
+			PRECOMPILED_ARCH := /i386
+		else
+			PRECOMPILED_ARCH := /${uname_M}
+		endif
+		endif
+		endif
+	else
+    	cpu_arch := ${uname_M}
+
+	ifneq (,$(filter ${cpu_arch},unknown Unknown not))
+		cpu_arch := ${uname_P}
+	endif
+	PRECOMPILED_ARCH := /${cpu_arch}
+	endif
+	endif
+endif
+
+# ************ Line:1256-1270 ************
+ifeq (,$(filter ${EXTERNAL_SRC_ONLY},YES yes y Y 1))
+# If EXTERNAL_SRC_ONLY=YES is not defined, lets look for the precompiled lib
+PRECOMPILED_RES := $(PRECOMPILED_OS)$(PRECOMPILED_ARCH)
+endif
+
+# Agent dependencies
+# EXTERNAL_RES := cJSON curl libdb libffi libyaml openssl procps sqlite zlib audit-userspace msgpack bzip2 nlohmann googletest libpcre2 libplist pacman libarchive popt rpm
+
+# JNote : EXTERNAL_RES 不知道有沒有少
+EXTERNAL_RES := cJSON curl openssl sqlite zlib
+ifneq (${TARGET},agent)
+	ifneq (${TARGET},winagent)
+		# Manager extra dependency
+		EXTERNAL_RES += $(CPYTHON) jemalloc
+	endif
+endif
+EXTERNAL_DIR := $(EXTERNAL_RES:%=external/%)
+EXTERNAL_TAR := $(EXTERNAL_RES:%=external/%.tar.gz)
+
+# ************ Line:1272-1323 ************
+.PHONY: deps
+deps: $(EXTERNAL_TAR)
+
+external/$(CPYTHON).tar.gz:
+# Python interpreter
+ifeq (,$(filter ${PYTHON_SOURCE},YES yes y Y 1))
+	ifneq (,$(PRECOMPILED_RES))
+	external/$(CPYTHON).tar.gz: external-precompiled/$(CPYTHON).tar.gz
+		test -e $(patsubst %.gz,%,$@) ||\
+		($(CURL) $@ $(RESOURCES_URL)/libraries/sources/$(patsubst external/%,%,$@) &&\
+		cd external && $(GUNZIP) $(patsubst external/%,%,$@) && $(TAR) $(patsubst external/%.gz,%,$@) && rm $(patsubst external/%.gz,%,$@))
+		test -d $(patsubst %.tar.gz,%,$@) || (cd external && $(GZIP) $(patsubst external/%.gz,%,$@))
+
+	external-precompiled/$(CPYTHON).tar.gz:
+		-$(CURL) external/$(patsubst external-precompiled/%,%,$@) $(RESOURCES_URL)/libraries/$(PRECOMPILED_RES)/$(patsubst external-precompiled/%,%,$@) || true
+		-cd external && test -e $(patsubst external-precompiled/%,%,$@) && $(GUNZIP) $(patsubst external-precompiled/%,%,$@) || true
+	else
+	external/$(CPYTHON).tar.gz:
+		$(CURL) $@ $(RESOURCES_URL)/libraries/sources/$(patsubst external/%,%,$@)
+		cd external && $(GUNZIP) $(patsubst external/%,%,$@)
+		cd external && $(TAR) $(patsubst external/%.gz,%,$@)
+		rm $(patsubst %.gz,%,$@)
+	endif
+else
+	external/$(CPYTHON).tar.gz:
+		$(CURL) $@ $(RESOURCES_URL)/libraries/sources/$(patsubst external/%,%,$@)
+		cd external && $(GUNZIP) $(patsubst external/%,%,$@)
+		cd external && $(TAR) $(patsubst external/%.gz,%,$@)
+		rm $(patsubst %.gz,%,$@)
+endif
+
+# Remaining dependencies
+ifneq (,$(PRECOMPILED_RES))
+external/%.tar.gz: external-precompiled/%.tar.gz
+	test -d $(patsubst %.tar.gz,%,$@) ||\
+	($(CURL) $@ $(RESOURCES_URL)/libraries/sources/$(patsubst external/%,%,$@) &&\
+	cd external && $(GUNZIP) $(patsubst external/%,%,$@) && $(TAR) $(patsubst external/%.gz,%,$@) && rm $(patsubst external/%.gz,%,$@))
+else
+external/%.tar.gz:
+	$(CURL) $@ $(RESOURCES_URL)/libraries/sources/$(patsubst external/%,%,$@)
+	cd external && $(GUNZIP) $(patsubst external/%,%,$@)
+	cd external && $(TAR) $(patsubst external/%.gz,%,$@)
+	rm $(patsubst %.gz,%,$@)
+endif
+
+ifneq (,$(PRECOMPILED_RES))
+external-precompiled/%.tar.gz:
+	-$(CURL) external/$(patsubst external-precompiled/%,%,$@) $(RESOURCES_URL)/libraries/$(PRECOMPILED_RES)/$(patsubst external-precompiled/%,%,$@) || true
+	-cd external && test -e $(patsubst external-precompiled/%,%,$@) && $(GUNZIP) $(patsubst external-precompiled/%,%,$@) || true
+	-cd external && test -e $(patsubst external-precompiled/%.gz,%,$@) && $(TAR) $(patsubst external-precompiled/%.gz,%,$@) || true
+	-test -e external/$(patsubst external-precompiled/%.gz,%,$@) && rm external/$(patsubst external-precompiled/%.gz,%,$@) || true
+endif
+
+
+# ************ Line:1323-1333 ************
+####################
+#### OSSEC Libs ####
+####################
+WAZUHEXT_LIB = libwazuhext.$(SHARED)
+WAZUH_LIB = libwazuhshared.$(SHARED)
+BUILD_LIBS = libwazuh.a $(WAZUHEXT_LIB)
+
+$(BUILD_SERVER) $(BUILD_AGENT) $(WINDOWS_BINS): $(BUILD_LIBS)
+
+
+# ************ Line:1556-1562 ************
+#### Config ##########
+
+config_c := $(wildcard config/*.c)
+config_o := $(config_c:.c=.o)
+
+config/%.o: config/%.c
+	${OSSEC_CC} ${OSSEC_CFLAGS} -c $^ -o $@
+
+
+
+# ************ Line:1691-1740 ************ libwazuh,libwazuhext 
+#### libwazuh ######### JNote : 這邊要改一下，不用link到這麼多地方
+
+libwazuh.a: ${config_o} ${wmodules_dep} ${crypto_o} ${shared_o} ${os_net_o} ${os_regex_o} ${os_xml_o} ${os_zlib_o} ${UNIT_TEST_WRAPPERS} os_auth/ssl.o os_auth/check_cert.o addagent/validate.o ${manage_agents} analysisd/logmsg.o
+	${OSSEC_LINK} $@ $^
+	${OSSEC_RANLIB} $@
+
+### libwazuhext #########
+
+ifeq (${uname_S},Darwin)
+WAZUH_SHFLAGS=-install_name @rpath/libwazuhext.$(SHARED)
+
+$(WAZUHEXT_LIB): $(EXTERNAL_LIBS)
+	$(OSSEC_SHARED) $(OSSEC_CFLAGS) $(WAZUH_SHFLAGS) -o $@ -Wl,-all_load $^ -Wl,-noall_load $(OSSEC_LIBS)
+else # JNote : 這邊會有用
+ifeq (${TARGET}, winagent)
+$(WAZUHEXT_LIB): $(EXTERNAL_LIBS)
+	$(OSSEC_SHARED) $(OSSEC_CFLAGS) -o $@ -static-libgcc -Wl,--export-all-symbols -Wl,--whole-archive $^ -Wl,--no-whole-archive ${OSSEC_LIBS}
+else
+ifeq (${uname_S},SunOS)
+	ifneq ($(uname_R),5.10)
+	LIBGCC_FLAGS := -static-libgcc
+	else
+	LIBGCC_FLAGS := -Wl,-rpath,\$$ORIGIN
+	endif
+	
+	ifeq (${uname_P},sparc)
+	$(WAZUHEXT_LIB): $(EXTERNAL_LIBS)
+		$(OSSEC_SHARED) $(OSSEC_CFLAGS) -mimpure-text -o $@ $(LIBGCC_FLAGS) -Wl,--whole-archive $^ -Wl,--no-whole-archive ${OSSEC_LIBS}
+	else
+	$(WAZUHEXT_LIB): $(EXTERNAL_LIBS)
+		$(OSSEC_SHARED) $(OSSEC_CFLAGS) -o $@ $(LIBGCC_FLAGS) -Wl,--whole-archive $^ -Wl,--no-whole-archive ${OSSEC_LIBS}
+	endif
+else
+ifneq (,$(filter ${uname_S},AIX HP-UX))
+$(WAZUHEXT_LIB): $(EXTERNAL_LIBS)
+	mkdir -p libwazuhext;
+	find external/ -name \*.a -exec cp {} libwazuhext/ \;
+	for lib in libcjson.a libz.a libmsgpack.a libssl.a libcrypto.a libsqlite3.a libyaml.a libpcre2-8.a ; do \
+		ar -x libwazuhext/$$lib; \
+		mv *.o libwazuhext/; \
+	done
+	$(OSSEC_SHARED) $(OSSEC_CFLAGS) libwazuhext/*.o -o $@ -static-libgcc
+
+else # JNote : 應該會直接跑這邊
+$(WAZUHEXT_LIB): $(EXTERNAL_LIBS)
+	$(OSSEC_SHARED) $(OSSEC_CFLAGS) -o $@ -Wl,--whole-archive $^ -Wl,--no-whole-archive ${OSSEC_LIBS}
+endif
+endif
+endif
+endif
+
 # ************ Line:1836-1846 ************ addagent 的功能
 #### addagent ######
 
@@ -497,6 +765,46 @@ addagent/%.o: addagent/%.c
 # manage_agents: ${addagent_o}
 # 	${OSSEC_CCBIN} ${OSSEC_LDFLAGS} $^ ${OSSEC_LIBS} -o $@
 
+
+
+# ************ Line:1915-1951 ************ libwazuhshared
+### libwazuhshared.so #########
+
+ifeq (${uname_S},Darwin)
+WAZUH_SHARED_SHFLAGS=-install_name @rpath/libwazuhshared.$(SHARED)
+
+$(WAZUH_LIB): $(WAZUHEXT_LIB) $(AR_PROGRAMS_DEPS)
+	$(OSSEC_SHARED) $(OSSEC_CFLAGS) $(WAZUH_SHARED_SHFLAGS) -o $@ -Wl,-all_load $^ -Wl,-noall_load $(OSSEC_LIBS)
+else # JNote : Windows 這邊會跑
+ifeq (${TARGET}, winagent)
+$(WAZUH_LIB): $(WAZUHEXT_LIB) $(AR_PROGRAMS_DEPS)
+	$(OSSEC_SHARED) $(OSSEC_CFLAGS) -UOSSECHIDS -o $@ -static-libgcc -Wl,--export-all-symbols -Wl,--whole-archive $^ -Wl,--no-whole-archive ${OSSEC_LIBS}
+else
+ifeq (${uname_S},SunOS)
+	ifneq ($(uname_R),5.10)
+	LIBGCC_FLAGS := -static-libgcc
+	else
+	LIBGCC_FLAGS := -Wl,-rpath,\$$ORIGIN
+	endif
+
+	ifeq (${uname_P},sparc)
+	$(WAZUH_LIB): $(WAZUHEXT_LIB) $(AR_PROGRAMS_DEPS)
+		$(OSSEC_SHARED) $(OSSEC_CFLAGS) -mimpure-text -o $@ $(LIBGCC_FLAGS) -Wl,--whole-archive $^ -Wl,--no-whole-archive ${OSSEC_LIBS}
+	else
+	$(WAZUH_LIB): $(WAZUHEXT_LIB) $(AR_PROGRAMS_DEPS)
+		$(OSSEC_SHARED) $(OSSEC_CFLAGS) -o $@ $(LIBGCC_FLAGS) -Wl,--whole-archive $^ -Wl,--no-whole-archive ${OSSEC_LIBS}
+	endif
+else
+ifneq (,$(filter ${uname_S},AIX HP-UX))
+$(WAZUH_LIB): $(WAZUHEXT_LIB) $(AR_PROGRAMS_DEPS)
+	$(OSSEC_SHARED) $(OSSEC_CFLAGS) $^ ${OSSEC_LIBS} -o $@ -static-libgcc
+else # JNote : Linux 這邊會跑
+$(WAZUH_LIB): $(WAZUHEXT_LIB) $(AR_PROGRAMS_DEPS)
+	$(OSSEC_SHARED) $(OSSEC_CFLAGS) -o $@ -Wl,--whole-archive $^ -Wl,--no-whole-archive ${OSSEC_LIBS}
+endif
+endif
+endif
+endif
 
 # ************ Line:2048-2060 ************ os_auth 的功能
 #### os_auth #######
@@ -550,22 +858,22 @@ ifneq ($(wildcard external/*/*),)
 	rm -rf ${POPT_BUILD_DIR}
 	rm -rf ${RPM_BUILD_DIR}
 
-ifneq ($(wildcard external/libdb/build_unix/*),)
-	cd ${EXTERNAL_LIBDB} && ${MAKE} realclean
-endif
+	ifneq ($(wildcard external/libdb/build_unix/*),)
+		cd ${EXTERNAL_LIBDB} && ${MAKE} realclean
+	endif
 
-ifneq ($(wildcard external/libarchive/Makefile),)
-	cd ${EXTERNAL_LIBARCHIVE} && ${MAKE} clean
-endif
+	ifneq ($(wildcard external/libarchive/Makefile),)
+		cd ${EXTERNAL_LIBARCHIVE} && ${MAKE} clean
+	endif
 
-ifneq ($(wildcard external/jemalloc/Makefile),)
-	cd ${EXTERNAL_JEMALLOC} && ${MAKE} clean
-endif
+	ifneq ($(wildcard external/jemalloc/Makefile),)
+		cd ${EXTERNAL_JEMALLOC} && ${MAKE} clean
+	endif
 
-ifneq ($(wildcard external/pacman/lib/libalpm/*),)
-	rm -f $(EXTERNAL_PACMAN)lib/libalpm/libalpm.a
-	rm -f $(EXTERNAL_PACMAN)lib/libalpm/*.o
-endif
+	ifneq ($(wildcard external/pacman/lib/libalpm/*),)
+		rm -f $(EXTERNAL_PACMAN)lib/libalpm/libalpm.a
+		rm -f $(EXTERNAL_PACMAN)lib/libalpm/*.o
+	endif
 endif
 
 clean-wpython:

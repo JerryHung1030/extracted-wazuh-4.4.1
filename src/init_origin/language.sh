@@ -5,8 +5,6 @@
 
 catError()
 {
-    echo "########### JNote : running on language.sh : catError() ###########"
-
     FILE=$1;
 
     FILE_PATH="${TEMPLATE}/${LANGUAGE}/${ERROR}/${FILE}.txt"
@@ -25,8 +23,6 @@ catError()
 
 catMsg()
 {
-    echo "########### JNote : running on language.sh : catMsg() ###########"
-
     FILE=$1;
 
     FILE_PATH="${TEMPLATE}/${LANGUAGE}/${MSG}/${FILE}.txt"
