@@ -610,10 +610,10 @@ PRECOMPILED_RES := $(PRECOMPILED_OS)$(PRECOMPILED_ARCH)
 endif
 
 # Agent dependencies
-# EXTERNAL_RES := cJSON curl libdb libffi libyaml openssl procps sqlite zlib audit-userspace msgpack bzip2 nlohmann googletest libpcre2 libplist pacman libarchive popt rpm
+# EXTERNAL_RES := cJSON curl libdb libffi libyaml openssl procps sqlite zlib audit-userspace msgpack bzip2 nlohmann googletest  libplist pacman libarchive popt rpm
 
 # JNote : EXTERNAL_RES 不知道有沒有少
-EXTERNAL_RES := cJSON curl openssl sqlite zlib
+EXTERNAL_RES := cJSON curl openssl sqlite zlib libpcre2
 ifneq (${TARGET},agent)
 	ifneq (${TARGET},winagent)
 		# Manager extra dependency
@@ -699,11 +699,119 @@ config/%.o: config/%.c
 	${OSSEC_CC} ${OSSEC_CFLAGS} -c $^ -o $@
 
 
+# ************ Line:1583-1605 ************
+#### Wazuh modules ##
+wmodules_c := $(wildcard wazuh_modules/wm*.c) $(wildcard wazuh_modules/agent_upgrade/*.c)
+
+ifeq (${TARGET},agent)
+	wmodules_c := ${wmodules_c} $(wildcard wazuh_modules/agent_upgrade/agent/*.c)
+else ifeq (${TARGET},winagent)
+	wmodules_c := ${wmodules_c} $(wildcard wazuh_modules/agent_upgrade/agent/*.c)
+else
+	wmodules_c := ${wmodules_c} $(wildcard wazuh_modules/vulnerability_detector/*.c)
+	wmodules_c := ${wmodules_c} $(wildcard wazuh_modules/task_manager/*.c)
+	wmodules_c := ${wmodules_c} $(wildcard wazuh_modules/agent_upgrade/manager/*.c)
+endif
+
+wmodules_o := $(wmodules_c:.c=.o)
+
+wazuh_modules/%.o: wazuh_modules/%.c
+	${OSSEC_CC} ${OSSEC_CFLAGS} -c $^ -o $@
+
+wmodules_dep := ${wmodules_o} ${wdblib_o}
+
+ifeq (${uname_S},HP-UX)
+	wmodules_dep := ${wmodules_dep} ${config_o}
+endif
+
+# ************ Line:1607-1689 ************
+#### crypto ##########
+
+crypto_blowfish_c := os_crypto/blowfish/bf_op.c
+crypto_blowfish_o := $(crypto_blowfish_c:.c=.o)
+
+os_crypto/blowfish/%.o: os_crypto/blowfish/%.c
+	${OSSEC_CC} ${OSSEC_CFLAGS} -c $^ -o $@
+
+crypto_md5_c := os_crypto/md5/md5_op.c
+crypto_md5_o := $(crypto_md5_c:.c=.o)
+
+os_crypto/md5/%.o: os_crypto/md5/%.c
+	${OSSEC_CC} ${OSSEC_CFLAGS} -c $^ -o $@
+
+crypto_sha1_c := os_crypto/sha1/sha1_op.c
+crypto_sha1_o := $(crypto_sha1_c:.c=.o)
+
+os_crypto/sha1/%.o: os_crypto/sha1/%.c
+	${OSSEC_CC} ${OSSEC_CFLAGS} -c $^ -o $@
+
+crypto_sha256_c := os_crypto/sha256/sha256_op.c
+crypto_sha256_o := $(crypto_sha256_c:.c=.o)
+
+os_crypto/sha256/%.o: os_crypto/sha256/%.c
+	${OSSEC_CC} ${OSSEC_CFLAGS} -c $^ -o $@
+
+crypto_sha512_c := os_crypto/sha512/sha512_op.c
+crypto_sha512_o := $(crypto_sha512_c:.c=.o)
+
+os_crypto/sha512/%.o: os_crypto/sha512/%.c
+	${OSSEC_CC} ${OSSEC_CFLAGS} -c $^ -o $@
+
+crypto_aes_c := os_crypto/aes/aes_op.c
+crypto_aes_o := $(crypto_aes_c:.c=.o)
+
+os_crypto/aes/%.o: os_crypto/aes/%.c
+	${OSSEC_CC} ${OSSEC_CFLAGS} -c $^ -o $@
+
+crypto_md5_sha1_c := os_crypto/md5_sha1/md5_sha1_op.c
+crypto_md5_sha1_o := $(crypto_md5_sha1_c:.c=.o)
+
+os_crypto/md5_sha1/%.o: os_crypto/md5_sha1/%.c
+	${OSSEC_CC} ${OSSEC_CFLAGS} -c $^ -o $@
+
+crypto_md5_sha1_sha256_c := os_crypto/md5_sha1_sha256/md5_sha1_sha256_op.c
+crypto_md5_sha1_sha256_o := $(crypto_md5_sha1_sha256_c:.c=.o)
+
+os_crypto/md5_sha1_sha256/%.o: os_crypto/md5_sha1_sha256/%.c
+	${OSSEC_CC} ${OSSEC_CFLAGS} -c $^ -o $@
+
+crypto_hmac_c := os_crypto/hmac/hmac.c
+crypto_hmac_o := $(crypto_hmac_c:.c=.o)
+
+os_crypto/hmac/%.o: os_crypto/hmac/%.c
+	${OSSEC_CC} ${OSSEC_CFLAGS} -c $^ -o $@
+
+crypto_shared_c := $(wildcard os_crypto/shared/*.c)
+crypto_shared_o := $(crypto_shared_c:.c=.o)
+
+os_crypto/shared/%.o: os_crypto/shared/%.c
+	${OSSEC_CC} ${OSSEC_CFLAGS} -c $< -o $@
+
+crypto_signature_c := $(wildcard os_crypto/signature/*.c)
+crypto_signature_o := $(crypto_signature_c:.c=.o)
+
+os_crypto/signature/%.o: os_crypto/signature/%.c
+	${OSSEC_CC} ${OSSEC_CFLAGS} -c $< -o $@
+
+analysisd/logmsg.o: analysisd/logmsg.c
+	${OSSEC_CC} ${OSSEC_CFLAGS} -c $< -o $@
+
+
+crypto_o := ${crypto_blowfish_o} \
+					 ${crypto_md5_o} \
+					 ${crypto_sha1_o} \
+					 ${crypto_shared_o} \
+					 ${crypto_md5_sha1_o} \
+					 ${crypto_md5_sha1_sha256_o} \
+					 ${crypto_sha256_o} \
+					 ${crypto_sha512_o} \
+					 ${crypto_aes_o} \
+					 ${crypto_hmac_o} \
+					 ${crypto_signature_o}
 
 # ************ Line:1691-1740 ************ libwazuh,libwazuhext 
-#### libwazuh ######### JNote : 這邊要改一下，不用link到這麼多地方
-
-libwazuh.a: ${config_o} ${wmodules_dep} ${crypto_o} ${shared_o} ${os_net_o} ${os_regex_o} ${os_xml_o} ${os_zlib_o} ${UNIT_TEST_WRAPPERS} os_auth/ssl.o os_auth/check_cert.o addagent/validate.o ${manage_agents} analysisd/logmsg.o
+#### libwazuh ######### JNote : 先刪掉了  ${UNIT_TEST_WRAPPERS}
+libwazuh.a: ${config_o} ${wmodules_dep} ${crypto_o} ${shared_o} ${os_net_o} ${os_regex_o} ${os_xml_o} ${os_zlib_o} ${manage_agents} os_auth/ssl.o os_auth/check_cert.o addagent/validate.o analysisd/logmsg.o
 	${OSSEC_LINK} $@ $^
 	${OSSEC_RANLIB} $@
 
