@@ -253,43 +253,43 @@ extern const char *__local_name;
 // JNote : 這邊我有改過，把一些header拿掉。
 
 #include "debug_op.h"
-// #include "wait_op.h"
-// #include "agent_op.h"
+#include "wait_op.h" // mq_op.c會用到os_wait_predicate(), os_wait()
+#include "agent_op.h" // log_builder.c會用到 control_check_connection()
 #include "file_op.h"
-// #include "fs_op.h"
-// #include "mem_op.h"
-// #include "math_op.h"
-// #include "mq_op.h"
-// #include "privsep_op.h"
+#include "fs_op.h" // ./config/syscheck-config.h 會用到fs_set
+#include "mem_op.h" // syscheck-config.c 會用到 os_IsStrOnArray(), key.c 會用到 memset_secure(), expression.c+syscheck_op.c會用到w_FreeArray()
+#include "math_op.h" // hash_op.c會用到 os_getprime()
+#include "mq_op.h" // wazuh_modules/agent_upgrade/agent/wm_agent_upgrade_agent.c 會用到INFINITE_OPENQ_ATTEMPTS
+#include "privsep_op.h" // read-agents.c會用到 w_ctime()
 #include "pthreads_op.h"
 #include "regex_op.h"
-// #include "sig_op.h"
+#include "sig_op.h" // os_auth/main-client.c會用到 StartSIG()
 #include "list_op.h"
-// #include "hash_op.h"
-// #include "rbtree_op.h"
-// #include "queue_op.h"
-// #include "queue_linked_op.h"
+#include "hash_op.h" // ./analysisd/decoders/decoder.h,./config/syscheck-config.h,./analysisd/rules.h 會用到OSHash
+#include "rbtree_op.h" // ./headers/sec.h 會用到 rbtree
+#include "queue_op.h"  // ./analysisd/rules.h,./analysisd/rules.h 會用到 'w_queue_t'
+#include "queue_linked_op.h" // ./headers/sec.h 會用到 w_linked_queue_node_t,w_linked_queue_t
 // #include "bqueue_op.h"
-// #include "store_op.h"
+#include "store_op.h" // ./analysisd/decoders/decoder.h,./analysisd/rules.h 會用到OSStrore
 // #include "rc.h"
-#include "ar.h"
-// #include "validate_op.h"
+#include "ar.h" // AS_ONLY, REMOTE_AGENT, SPECIFIC_AGENT, ALL_AGENTS, REMOTE_AR, LOCAL_AR
+#include "validate_op.h" // client-config.c會用到 OS_IsValidIP()、OS_ExpandIPv6, log_builder.c會用到getDefine_Int
 // #include "file-queue.h"
 // #include "json-queue.h"
 // #include "read-agents.h"
 // #include "report_op.h"
-// #include "string_op.h"
-// #include "randombytes.h"
-// #include "labels_op.h"
-// #include "time_op.h"
-// #include "vector_op.h"
-// #include "exec_op.h"
+#include "string_op.h" // log_builder.c會用到wstr_escape_json()
+#include "randombytes.h" // os_crtypt/shared/msgs.c,addagent/validate.c 會用到os_random()
+#include "labels_op.h" // struct wlabel_t
+#include "time_op.h" // debug_op.c會用到w_get_timestamp()
+#include "vector_op.h" // ./headers/../syscheckd/syscheck.h會用到W_Vector
+#include "exec_op.h" // wfd_t struct, #define W_BIND_STDOUT 001
 // #include "json_op.h"
 // #include "notify_op.h"
-// #include "version_op.h"
+#include "version_op.h" // file_op.h呼叫的
 // #include "utf8_op.h"
-// #include "rwlock_op.h"
-// #include "log_builder.h"
+#include "rwlock_op.h" // log_builder.h會用到 struct rwlock_t
+#include "log_builder.h" // mq_op.c會用到 struct log_builder_t
 
 #include "os_xml/os_xml.h"
 #include "os_regex/os_regex.h"
@@ -308,6 +308,6 @@ extern const char *__local_name;
 // #include "bzip2_op.h"
 #include "enrollment_op.h"
 // #include "buffer_op.h"
-// #include "atomic.h"
+#include "atomic.h" // ./headers/../syscheckd/syscheck.h 會用到 atomic_int_t struct
 
 #endif /* SHARED_H */

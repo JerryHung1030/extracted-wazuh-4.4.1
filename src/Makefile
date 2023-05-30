@@ -261,9 +261,11 @@ endif
 
 endif #winagent
 
-# ************ Line:446-447 ************ OSSEC_CC, OSSEC_CCBIN 相關的設定
+# ************ Line:446-447,449-450 ************ OSSEC_CC, OSSEC_CCBIN 相關的設定
 OSSEC_CC      =${QUIET_CC}${MING_BASE}${CC}
 OSSEC_CCBIN   =${QUIET_CCBIN}${MING_BASE}${CC}
+OSSEC_LINK    =${QUIET_LINK}${MING_BASE}ar -crus
+OSSEC_RANLIB  =${QUIET_RANLIB}${MING_BASE}ranlib
 
 # ************ Line:454-461 ************ OSSEC_CFLAGS,OSSEC_LDFLAGS,OSSEC_LIBS 相關的設定
 ifneq (,$(filter ${USE_INOTIFY},YES auto yes y Y 1))
@@ -534,7 +536,26 @@ ifeq (${MAKECMDGOALS},winagent)
 $(error Do not use 'winagent' directly, use 'TARGET=winagent')
 endif
 
-# ************ Line:1183-1248 ************ addagent 的功能
+
+# ************ Line:953-968 ************
+#### zlib ##########
+
+$(ZLIB_LIB):
+ifeq (${TARGET},winagent)
+	cd ${EXTERNAL_ZLIB} && cp zconf.h.in zconf.h && ${MAKE} -f win32/Makefile.gcc PREFIX=${MING_BASE} libz.a
+else
+	cd ${EXTERNAL_ZLIB} && CFLAGS=-fPIC ./configure && ${MAKE} libz.a
+endif
+
+ZLIB_INCLUDE=-I./${EXTERNAL_ZLIB}
+
+os_zlib_c := os_zlib/os_zlib.c
+os_zlib_o := $(os_zlib_c:.c=.o)
+
+os_zlib/%.o: os_zlib/%.c
+	${OSSEC_CC} ${OSSEC_CFLAGS} -c $< -o $@
+
+# ************ Line:1183-1248 ************
 ################################
 #### External dependencies  ####
 ################################
@@ -687,6 +708,46 @@ WAZUH_LIB = libwazuhshared.$(SHARED)
 BUILD_LIBS = libwazuh.a $(WAZUHEXT_LIB)
 
 $(BUILD_SERVER) $(BUILD_AGENT) $(WINDOWS_BINS): $(BUILD_LIBS)
+
+
+# ************ Line:1335-1357 ************
+#### os_xml ########
+
+os_xml_c := $(wildcard os_xml/*.c)
+os_xml_o := $(os_xml_c:.c=.o)
+
+os_xml/%.o: os_xml/%.c
+	${OSSEC_CC} ${OSSEC_CFLAGS} -fPIC -c $^ -o $@
+
+#### os_regex ######
+
+os_regex_c := $(wildcard os_regex/*.c)
+os_regex_o := $(os_regex_c:.c=.o)
+
+os_regex/%.o: os_regex/%.c
+	${OSSEC_CC} ${OSSEC_CFLAGS} -fPIC -c $^ -o $@
+
+#### os_net ##########
+
+os_net_c := $(wildcard os_net/*.c)
+os_net_o := $(os_net_c:.c=.o)
+
+os_net/%.o: os_net/%.c
+	${OSSEC_CC} ${OSSEC_CFLAGS} -fPIC -c $^ -o $@
+
+
+# ************ Line:1527-1537 ************
+shared_c := $(wildcard shared/*.c)
+shared_o := $(shared_c:.c=.o)
+
+shared/%.o: shared/%.c
+	${OSSEC_CC} ${OSSEC_CFLAGS} -fPIC -DARGV0=\"wazuh-remoted\" -c $^ -o $@
+
+shared/debug_op_proc.o: shared/debug_op.c
+	${OSSEC_CC} ${OSSEC_CFLAGS} -fPIC -DMA -DARGV0=\"wazuh-remoted\" -c $^ -o $@
+
+shared/file_op_proc.o: shared/file_op.c
+	${OSSEC_CC} ${OSSEC_CFLAGS} -fPIC -DCLIENT -DARGV0=\"wazuh-remoted\" -c $^ -o $@
 
 
 # ************ Line:1556-1562 ************
@@ -870,9 +931,8 @@ addagent/%.o: addagent/%.c
 	${OSSEC_CC} ${OSSEC_CFLAGS} -I./addagent -DARGV0=\"manage_agents\" -c $^ -o $@
 
 
-# manage_agents: ${addagent_o}
-# 	${OSSEC_CCBIN} ${OSSEC_LDFLAGS} $^ ${OSSEC_LIBS} -o $@
-
+manage_agents: ${addagent_o}
+	${OSSEC_CCBIN} ${OSSEC_LDFLAGS} $^ ${OSSEC_LIBS} -o $@
 
 
 # ************ Line:1915-1951 ************ libwazuhshared

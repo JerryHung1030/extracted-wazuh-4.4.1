@@ -59,28 +59,28 @@ typedef enum crypto_type {
     SHA256SUM
 } crypto_type;
 
-// Inclusion of modules
+// Inclusion of modules // JNote 先註解調一大部分。
 
-#include "wm_oscap.h"
-#include "wm_database.h"
-#include "wm_syscollector.h"
-#include "wm_command.h"
-#include "wm_ciscat.h"
-#include "wm_aws.h"
-#include "vulnerability_detector/wm_vuln_detector.h"
-#include "wm_osquery_monitor.h"
-#include "wm_download.h"
-#include "wm_azure.h"
-#include "wm_docker.h"
-#include "wm_sca.h"
-#include "wm_fluent.h"
-#include "wm_control.h"
-#include "wm_gcp.h"
-#include "wm_task_general.h"
-#include "agent_upgrade/wm_agent_upgrade.h"
-#include "task_manager/wm_task_manager.h"
-#include "wm_github.h"
-#include "wm_office365.h"
+// #include "wm_oscap.h"
+// #include "wm_database.h"
+// #include "wm_syscollector.h"
+// #include "wm_command.h"
+// #include "wm_ciscat.h"
+// #include "wm_aws.h"
+// #include "vulnerability_detector/wm_vuln_detector.h"
+// #include "wm_osquery_monitor.h"
+// #include "wm_download.h"
+// #include "wm_azure.h"
+// #include "wm_docker.h"
+// #include "wm_sca.h"
+// #include "wm_fluent.h"
+#include "wm_control.h" // wmodules.c會用到wm_control_read()
+// #include "wm_gcp.h"
+#include "wm_task_general.h" // WM_TASK_STATUS_DONE,WM_TASK_STATUS_FAILED會用到
+#include "agent_upgrade/wm_agent_upgrade.h" // 裡面的int wm_agent_upgrade_read()的定義在這邊
+// #include "task_manager/wm_task_manager.h"
+// #include "wm_github.h"
+// #include "wm_office365.h"
 
 extern wmodule *wmodules;       // Loaded modules.
 extern int wm_task_nice;        // Nice value for tasks.
