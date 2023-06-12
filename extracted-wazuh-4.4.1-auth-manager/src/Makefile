@@ -54,9 +54,9 @@ EXTERNAL_CURL=external/curl/
 #EXTERNAL_AUDIT=external/audit-userspace/
 #EXTERNAL_LIBFFI=external/libffi/
 #EXTERNAL_LIBPLIST=external/libplist/
-EXTERNAL_CPYTHON=external/cpython/
+#EXTERNAL_CPYTHON=external/cpython/
 EXTERNAL_MSGPACK=external/msgpack/
-#EXTERNAL_BZIP2=external/bzip2/
+EXTERNAL_BZIP2=external/bzip2/
 EXTERNAL_GOOGLE_TEST=external/googletest/
 EXTERNAL_LIBPCRE2=external/libpcre2/
 ifneq (${TARGET},winagent)
@@ -367,7 +367,7 @@ endif
 OSSEC_CFLAGS+=${DEFINES}
 OSSEC_CFLAGS+=-pipe -Wall -Wextra -std=gnu99
 #OSSEC_CFLAGS+=-I./ -I./headers/ -I${EXTERNAL_OPENSSL}include -I$(EXTERNAL_JSON) -I${EXTERNAL_LIBYAML}include -I${EXTERNAL_CURL}include -I${EXTERNAL_MSGPACK}include -I${EXTERNAL_BZIP2} -I${SHARED_MODULES}common -I${DBSYNC}include -I${RSYNC}include -I${SYSCOLLECTOR}include  -I${SYSINFO}include  -I${EXTERNAL_LIBPCRE2}include -I${EXTERNAL_RPM}/builddir/output/include
-OSSEC_CFLAGS+=-I./ -I./headers/ -I${EXTERNAL_OPENSSL}include -I$(EXTERNAL_JSON) -I${EXTERNAL_CURL}include -I${EXTERNAL_MSGPACK}include -I${DBSYNC}include -I${RSYNC}include  -I${EXTERNAL_LIBPCRE2}include
+OSSEC_CFLAGS+=-I./ -I./headers/ -I${EXTERNAL_OPENSSL}include -I$(EXTERNAL_JSON) -I${EXTERNAL_CURL}include -I${EXTERNAL_MSGPACK}include -I${EXTERNAL_BZIP2} -I${DBSYNC}include -I${RSYNC}include  -I${EXTERNAL_LIBPCRE2}include
 
 OSSEC_CFLAGS += ${CFLAGS}
 OSSEC_LDFLAGS += ${LDFLAGS}
@@ -716,7 +716,7 @@ BUILD_SERVER+=wazuh-authd
 #BUILD_SERVER+=wazuh-dbd -
 #BUILD_SERVER+=wazuh-integratord
 #BUILD_SERVER+=wazuh-modulesd
-#BUILD_SERVER+=wazuh-db
+BUILD_SERVER+=wazuh-db
 
 #BUILD_AGENT+=wazuh-agentd
 BUILD_AGENT+=agent-auth
@@ -847,7 +847,7 @@ LIBCURL_LIB = $(EXTERNAL_CURL)lib/.libs/libcurl.a
 #AUDIT_LIB 	= $(EXTERNAL_AUDIT)lib/.libs/libaudit.a
 #LIBFFI_LIB 	= $(EXTERN#AL_LIBFFI)$(TARGET)/.libs/libffi.a
 MSGPACK_LIB = $(EXTERNAL_MSGPACK)libmsgpack.a
-#BZIP2_LIB   = $(EXTERNAL_BZIP2)libbz2.a
+BZIP2_LIB   = $(EXTERNAL_BZIP2)libbz2.a
 LIBPCRE2_LIB = $(EXTERNAL_LIBPCRE2).libs/libpcre2-8.a
 #POPT_LIB = $(EXTERNAL_POPT)build/output/src/.libs/libpopt.a
 #RPM_LIB = $(EXTERNAL_RPM)builddir/librpm.a
@@ -868,7 +868,7 @@ endif
 ifneq (${TARGET},winagent)
 EXTERNAL_LIBS += $(MSGPACK_LIB)
 ifneq (${TARGET},agent)
-#EXTERNAL_LIBS += $(LIBFFI_LIB) $(BZIP2_LIB)
+EXTERNAL_LIBS += $(LIBFFI_LIB) $(BZIP2_LIB)
 endif
 
 ifeq (${uname_S},Linux)
@@ -902,13 +902,13 @@ ifneq (,$(filter ${TEST},YES yes y Y 1))
 external: build_gtest
 endif
 
-ifneq (${TARGET},winagent)
-ifneq (${TARGET},agent)
-ifneq (,$(wildcard ${EXTERNAL_CPYTHON}))
-external: build_python
-endif
-endif
-endif
+#ifneq (${TARGET},winagent)
+#ifneq (${TARGET},agent)
+#ifneq (,$(wildcard ${EXTERNAL_CPYTHON}))
+#external: build_python
+#endif
+#endif
+#endif
 
 test_external:
 ifeq ($(wildcard external/*/*),)
@@ -982,8 +982,8 @@ os_zlib/%.o: os_zlib/%.c
 
 #### bzip2 ##########
 
-#$(BZIP2_LIB):
-#	cd ${EXTERNAL_BZIP2} && ${MAKE} CFLAGS="-fpic -Wall -O2 -D_FILE_OFFSET_BITS=64" libbz2.a
+$(BZIP2_LIB):
+	cd ${EXTERNAL_BZIP2} && ${MAKE} CFLAGS="-fpic -Wall -O2 -D_FILE_OFFSET_BITS=64" libbz2.a
 
 #### SQLite #########
 
@@ -1271,7 +1271,7 @@ endif
 
 # Agent dependencies
 #EXTERNAL_RES := cJSON curl libdb libffi libyaml openssl procps sqlite zlib audit-userspace msgpack bzip2 nlohmann googletest libpcre2 libplist pacman libarchive popt rpm
-EXTERNAL_RES := cJSON curl libdb openssl sqlite zlib msgpack libpcre2
+EXTERNAL_RES := cJSON curl libdb openssl sqlite zlib msgpack bzip2 libpcre2
 ifneq (${TARGET},agent)
 ifneq (${TARGET},winagent)
 	# Manager extra dependency
@@ -2204,55 +2204,55 @@ build_gtest:
 
 ### wazuh-python ###
 
-WPYTHON_DIR := ${INSTALLDIR}/framework/python
-OPTIMIZE_CPYTHON?=no
-WPYTHON_TAR=cpython.tar.gz
-WLIBPYTHON=libpython3.9.so.1.0
+#WPYTHON_DIR := ${INSTALLDIR}/framework/python
+#OPTIMIZE_CPYTHON?=no
+#WPYTHON_TAR=cpython.tar.gz
+#WLIBPYTHON=libpython3.9.so.1.0
 
-ifneq (,$(filter ${OPTIMIZE_CPYTHON},YES yes y Y 1))
-CPYTHON_FLAGS=--enable-optimizations
-endif
+#ifneq (,$(filter ${OPTIMIZE_CPYTHON},YES yes y Y 1))
+#CPYTHON_FLAGS=--enable-optimizations
+#endif
 
-wpython: install_dependencies install_framework install_api install_mitre
+#wpython: install_dependencies install_framework install_api install_mitre
 
-build_python:
-ifeq (,${INSTALLDIR})
-	$(error INSTALLDIR undefined. Run "${MAKE} TARGET=server INSTALLDIR=/path" to build python from sources)
-endif
+#build_python:
+#ifeq (,${INSTALLDIR})
+#	$(error INSTALLDIR undefined. Run "${MAKE} TARGET=server INSTALLDIR=/path" to build python from sources)
+#endif
 
-ifeq (,$(wildcard ${EXTERNAL_CPYTHON}/python))
-	export WPATH_LIB="'\$$\$$ORIGIN/../../../lib'" && export SOURCE_PATH=${ROUTE_PATH} && export WAZUH_FFI_PATH=${EXTERNAL_LIBFFI} && export LD_LIBRARY_PATH=${ROUTE_PATH} && cd ${EXTERNAL_CPYTHON} && ./configure --prefix="${WPYTHON_DIR}" --libdir="${WPYTHON_DIR}/lib" --enable-shared --with-openssl="${ROUTE_PATH}/${EXTERNAL_OPENSSL}" LDFLAGS="${ARCH_FLAGS} -L${ROUTE_PATH} -lwazuhext -Wl,-rpath,'\$$\$$ORIGIN/../../../lib',--disable-new-dtags" CPPFLAGS="-I${ROUTE_PATH}/${EXTERNAL_OPENSSL}" $(CPYTHON_FLAGS) && ${MAKE}
-endif
+#ifeq (,$(wildcard ${EXTERNAL_CPYTHON}/python))
+#	export WPATH_LIB="'\$$\$$ORIGIN/../../../lib'" && export SOURCE_PATH=${ROUTE_PATH} && export WAZUH_FFI_PATH=${EXTERNAL_LIBFFI} && export LD_LIBRARY_PATH=${ROUTE_PATH} && cd ${EXTERNAL_CPYTHON} && ./configure --prefix="${WPYTHON_DIR}" --libdir="${WPYTHON_DIR}/lib" --enable-shared --with-openssl="${ROUTE_PATH}/${EXTERNAL_OPENSSL}" LDFLAGS="${ARCH_FLAGS} -L${ROUTE_PATH} -lwazuhext -Wl,-rpath,'\$$\$$ORIGIN/../../../lib',--disable-new-dtags" CPPFLAGS="-I${ROUTE_PATH}/${EXTERNAL_OPENSSL}" $(CPYTHON_FLAGS) && ${MAKE}
+#endif
 
-build_python: $(WAZUHEXT_LIB)
+#build_python: $(WAZUHEXT_LIB)
 
-install_python:
-ifneq (,$(wildcard ${EXTERNAL_CPYTHON}))
-	cd ${EXTERNAL_CPYTHON} && export WPATH_LIB=${INSTALLDIR}/lib && export SOURCE_PATH=${ROUTE_PATH} && export WAZUH_FFI_PATH=${EXTERNAL_LIBFFI} && ${MAKE} install
-else
-	mkdir -p ${WPYTHON_DIR}
-	cp external/${WPYTHON_TAR} ${WPYTHON_DIR}/${WPYTHON_TAR} && ${TAR} ${WPYTHON_DIR}/${WPYTHON_TAR} -C ${WPYTHON_DIR} && rm -rf ${WPYTHON_DIR}/${WPYTHON_TAR}
-endif
-	find ${WPYTHON_DIR} -name "*${WLIBPYTHON}" -exec ln -f {} ${INSTALLDIR}/lib/${WLIBPYTHON} \;
+#install_python:
+#ifneq (,$(wildcard ${EXTERNAL_CPYTHON}))
+#	cd ${EXTERNAL_CPYTHON} && export WPATH_LIB=${INSTALLDIR}/lib && export SOURCE_PATH=${ROUTE_PATH} && export WAZUH_FFI_PATH=${EXTERNAL_LIBFFI} && ${MAKE} install
+#else
+#	mkdir -p ${WPYTHON_DIR}
+#	cp external/${WPYTHON_TAR} ${WPYTHON_DIR}/${WPYTHON_TAR} && ${TAR} ${WPYTHON_DIR}/${WPYTHON_TAR} -C ${WPYTHON_DIR} && rm -rf ${WPYTHON_DIR}/${WPYTHON_TAR}
+#endif
+#	find ${WPYTHON_DIR} -name "*${WLIBPYTHON}" -exec ln -f {} ${INSTALLDIR}/lib/${WLIBPYTHON} \;
 
-python_dependencies := requirements.txt
+#python_dependencies := requirements.txt
 
-install_dependencies: install_python
-ifneq (,$(wildcard ${EXTERNAL_CPYTHON}))
-	${WPYTHON_DIR}/bin/python3 -m pip install --upgrade pip --index-url=file://${ROUTE_PATH}/${EXTERNAL_CPYTHON}/Dependencies/simple
-	LD_LIBRARY_PATH="${INSTALLDIR}/lib" LDFLAGS="-L${INSTALLDIR}/lib" ${WPYTHON_DIR}/bin/pip3 install -r ../framework/${python_dependencies}  --index-url=file://${ROUTE_PATH}/${EXTERNAL_CPYTHON}/Dependencies/simple
-endif
+#install_dependencies: install_python
+#ifneq (,$(wildcard ${EXTERNAL_CPYTHON}))
+#	${WPYTHON_DIR}/bin/python3 -m pip install --upgrade pip --index-url=file://${ROUTE_PATH}/${EXTERNAL_CPYTHON}/Dependencies/simple
+#	LD_LIBRARY_PATH="${INSTALLDIR}/lib" LDFLAGS="-L${INSTALLDIR}/lib" ${WPYTHON_DIR}/bin/pip3 install -r ../framework/${python_dependencies}  --index-url=file://${ROUTE_PATH}/${EXTERNAL_CPYTHON}/Dependencies/simple
+#endif
 
-install_framework: install_python
-	cd ../framework && ${WPYTHON_DIR}/bin/python3 setup.py clean --all install --prefix=${WPYTHON_DIR} --wazuh-version=$(shell cat VERSION) --install-type=${TARGET}
-	chown -R root:${WAZUH_GROUP} ${WPYTHON_DIR}
-	chmod -R o=- ${WPYTHON_DIR}
+#install_framework: install_python
+#	cd ../framework && ${WPYTHON_DIR}/bin/python3 setup.py clean --all install --prefix=${WPYTHON_DIR} --wazuh-version=$(shell cat VERSION) --install-type=${TARGET}
+#	chown -R root:${WAZUH_GROUP} ${WPYTHON_DIR}
+#	chmod -R o=- ${WPYTHON_DIR}
 
-install_api: install_python
-	cd ../api && ${WPYTHON_DIR}/bin/python3 setup.py clean --all install --prefix=${WPYTHON_DIR}
+#install_api: install_python
+#	cd ../api && ${WPYTHON_DIR}/bin/python3 setup.py clean --all install --prefix=${WPYTHON_DIR}
 
-install_mitre: install_python
-	cd ../tools/mitre && ${WPYTHON_DIR}/bin/python3 mitredb.py -d ${INSTALLDIR}/var/db/mitre.db
+#install_mitre: install_python
+#	cd ../tools/mitre && ${WPYTHON_DIR}/bin/python3 mitredb.py -d ${INSTALLDIR}/var/db/mitre.db
 
 
 ####################

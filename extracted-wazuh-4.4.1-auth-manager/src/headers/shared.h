@@ -285,7 +285,7 @@ extern const char *__local_name;
 #include "vector_op.h" // ./headers/../syscheckd/syscheck.h會用到W_Vector
 #include "exec_op.h" // wfd_t struct, #define W_BIND_STDOUT 001
 // #include "json_op.h"
-// #include "notify_op.h"
+#include "notify_op.h" // wazuh-db/main.c要用到
 #include "version_op.h" // file_op.h呼叫的
 // #include "utf8_op.h"
 #include "rwlock_op.h" // log_builder.h會用到 struct rwlock_t
@@ -301,11 +301,11 @@ extern const char *__local_name;
 // #include "custom_output_search.h"
 #include "url.h"
 // #include "yaml2json.h"
-// #include "cluster_utils.h"
+#include "cluster_utils.h"
 #include "auth_client.h"
 // #include "os_utils.h"
 // #include "schedule_scan.h"
-// #include "bzip2_op.h"
+#include "bzip2_op.h" // file.op.c 會用到
 #include "enrollment_op.h"
 // #include "buffer_op.h"
 #include "atomic.h" // ./headers/../syscheckd/syscheck.h 會用到 atomic_int_t struct

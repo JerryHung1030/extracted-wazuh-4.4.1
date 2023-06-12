@@ -62,14 +62,14 @@ typedef enum crypto_type {
 // Inclusion of modules // JNote 先註解調一大部分。
 
 // #include "wm_oscap.h"
-// #include "wm_database.h"
+#include "wm_database.h"
 // #include "wm_syscollector.h"
 // #include "wm_command.h"
 // #include "wm_ciscat.h"
 // #include "wm_aws.h"
 // #include "vulnerability_detector/wm_vuln_detector.h"
 // #include "wm_osquery_monitor.h"
-// #include "wm_download.h"
+#include "wm_download.h"
 // #include "wm_azure.h"
 // #include "wm_docker.h"
 // #include "wm_sca.h"
@@ -78,7 +78,7 @@ typedef enum crypto_type {
 // #include "wm_gcp.h"
 #include "wm_task_general.h" // WM_TASK_STATUS_DONE,WM_TASK_STATUS_FAILED會用到
 #include "agent_upgrade/wm_agent_upgrade.h" // 裡面的int wm_agent_upgrade_read()的定義在這邊
-// #include "task_manager/wm_task_manager.h"
+#include "task_manager/wm_task_manager.h"
 // #include "wm_github.h"
 // #include "wm_office365.h"
 

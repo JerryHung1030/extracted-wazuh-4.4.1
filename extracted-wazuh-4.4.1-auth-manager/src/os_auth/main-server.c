@@ -882,7 +882,6 @@ void* run_writer(__attribute__((unused)) void *arg) {
                                              &wdb_sock)) {
                     merror("Unable to set agent centralized group: %s (internal error)", cur->group);
                 }
-
             }
 
             gettime(&t1);

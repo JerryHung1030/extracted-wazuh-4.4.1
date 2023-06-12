@@ -100,7 +100,7 @@ void* run_local_server(__attribute__((unused)) void *arg) {
         FD_SET(sock, &fdset);
         timeout.tv_sec = 1;
         timeout.tv_usec = 0;
-
+        
         switch (select(sock + 1, &fdset, NULL, NULL, &timeout)) {
         case -1:
             if (errno != EINTR) {
