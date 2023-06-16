@@ -1,0 +1,44 @@
+{    
+    "makefile.makefilePath": "",
+    "makefile.makePath": "/usr/bin/make",
+    "makefile.configurations": [
+        {
+            "name": "server debug configuration",
+            "makeArgs": [
+                "TARGET=server",
+                "-j4", 
+                "DEBUG=yes", 
+                "DEBUGAD=yes"
+            ]
+        },
+        {
+            "name": "server configuration",
+            "makeArgs": [
+                "TARGET=server",
+                "-j4"
+            ]
+        },
+        {
+            "name": "make dep for no args"
+        }
+    ],
+    "makefile.launchConfigurations": [
+        {
+            "cwd": "/home/jerryhung/Desktop/4.4.1-authd_m+remoted/src",
+            "binaryPath": "/home/jerryhung/Desktop/4.4.1-authd_m+remoted/src/wazuh-remoted",
+            "binaryArgs": []
+        },
+        {
+            "cwd": "/home/jerryhung/Desktop/4.4.1-authd_m+remoted/src",
+            "binaryPath": "/home/jerryhung/Desktop/4.4.1-authd_m+remoted/src/wazuh-db",
+            "binaryArgs": []
+        },
+        {
+            "cwd": "/home/jerryhung/Desktop/4.4.1-authd_m+remoted/src",
+            "binaryPath": "/home/jerryhung/Desktop/4.4.1-authd_m+remoted/src/wazuh-authd",
+            "binaryArgs": []
+        }
+    ],
+    
+    "C_Cpp.default.configurationProvider": "ms-vscode.makefile-tools"
+}
