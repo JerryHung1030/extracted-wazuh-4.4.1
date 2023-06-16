@@ -49,7 +49,7 @@ EXTERNAL_JSON=external/cJSON/
 EXTERNAL_ZLIB=external/zlib/
 EXTERNAL_SQLITE=external/sqlite/
 EXTERNAL_OPENSSL=external/openssl/
-#EXTERNAL_LIBYAML=external/libyaml/
+EXTERNAL_LIBYAML=external/libyaml/
 EXTERNAL_CURL=external/curl/
 #EXTERNAL_AUDIT=external/audit-userspace/
 #EXTERNAL_LIBFFI=external/libffi/
@@ -329,7 +329,7 @@ endif
 ifneq (,$(filter ${DEBUG},YES yes y Y 1))
 	OSSEC_CFLAGS+=-g
 else
-	OSSEC_CFLAGS+=-DNDEBUG
+	OSSEC_CFLAGS+=-DNDEBUG 
 	OFLAGS+=-O2
 endif #DEBUG
 
@@ -367,7 +367,7 @@ endif
 OSSEC_CFLAGS+=${DEFINES}
 OSSEC_CFLAGS+=-pipe -Wall -Wextra -std=gnu99
 #OSSEC_CFLAGS+=-I./ -I./headers/ -I${EXTERNAL_OPENSSL}include -I$(EXTERNAL_JSON) -I${EXTERNAL_LIBYAML}include -I${EXTERNAL_CURL}include -I${EXTERNAL_MSGPACK}include -I${EXTERNAL_BZIP2} -I${SHARED_MODULES}common -I${DBSYNC}include -I${RSYNC}include -I${SYSCOLLECTOR}include  -I${SYSINFO}include  -I${EXTERNAL_LIBPCRE2}include -I${EXTERNAL_RPM}/builddir/output/include
-OSSEC_CFLAGS+=-I./ -I./headers/ -I${EXTERNAL_OPENSSL}include -I$(EXTERNAL_JSON) -I${EXTERNAL_CURL}include -I${EXTERNAL_MSGPACK}include -I${EXTERNAL_BZIP2} -I${DBSYNC}include -I${RSYNC}include  -I${EXTERNAL_LIBPCRE2}include
+OSSEC_CFLAGS+=-I./ -I./headers/ -I${EXTERNAL_OPENSSL}include -I$(EXTERNAL_JSON) -I${EXTERNAL_LIBYAML}include -I${EXTERNAL_CURL}include -I${EXTERNAL_MSGPACK}include -I${EXTERNAL_BZIP2} -I${DBSYNC}include -I${RSYNC}include  -I${EXTERNAL_LIBPCRE2}include
 
 OSSEC_CFLAGS += ${CFLAGS}
 OSSEC_LDFLAGS += ${LDFLAGS}
@@ -702,7 +702,7 @@ settings:
 #BUILD_SERVER+=wazuh-agentlessd -
 #BUILD_SERVER+=wazuh-execd -
 #BUILD_SERVER+=wazuh-logcollector -
-#BUILD_SERVER+=wazuh-remoted
+BUILD_SERVER+=wazuh-remoted
 #BUILD_SERVER+=wazuh-agentd
 #BUILD_SERVER+=manage_agents
 #BUILD_SERVER+=utils
@@ -842,7 +842,7 @@ JSON_LIB    = $(EXTERNAL_JSON)libcjson.a
 #DB_LIB      = $(EXTERNAL_LIBDB).libs/libdb-18.1.a
 #LIBALPM_LIB  = $(EXTERNAL_PACMAN)lib/libalpm/libalpm.a
 #LIBARCHIVE_LIB  = $(EXTERNAL_LIBARCHIVE).libs/libarchive.a
-#LIBYAML_LIB = $(EXTERNAL_LIBYAML)src/.libs/libyaml.a
+LIBYAML_LIB = $(EXTERNAL_LIBYAML)src/.libs/libyaml.a
 LIBCURL_LIB = $(EXTERNAL_CURL)lib/.libs/libcurl.a
 #AUDIT_LIB 	= $(EXTERNAL_AUDIT)lib/.libs/libaudit.a
 #LIBFFI_LIB 	= $(EXTERN#AL_LIBFFI)$(TARGET)/.libs/libffi.a
@@ -853,8 +853,7 @@ LIBPCRE2_LIB = $(EXTERNAL_LIBPCRE2).libs/libpcre2-8.a
 #RPM_LIB = $(EXTERNAL_RPM)builddir/librpm.a
 #JEMALLOC_LIB = $(EXTERNAL_JEMALLOC)lib/libjemalloc.so.2
 
-#EXTERNAL_LIBS := $(JSON_LIB) $(ZLIB_LIB) $(OPENSSL_LIB) $(CRYPTO_LIB) $(SQLITE_LIB) $(LIBYAML_LIB) $(LIBPCRE2_LIB)
-EXTERNAL_LIBS := $(JSON_LIB) $(ZLIB_LIB) $(OPENSSL_LIB) $(CRYPTO_LIB) $(SQLITE_LIB) $(LIBPCRE2_LIB)
+EXTERNAL_LIBS := $(JSON_LIB) $(ZLIB_LIB) $(OPENSSL_LIB) $(CRYPTO_LIB) $(SQLITE_LIB) $(LIBYAML_LIB) $(LIBPCRE2_LIB)
 
 # Adding libcurl only on Windows, Linux and MacOS
 ifeq (${TARGET},winagent)
@@ -1016,15 +1015,15 @@ ${EXTERNAL_JSON}%.o: ${EXTERNAL_JSON}%.c
 
 #### libyaml ##########
 
-#${LIBYAML_LIB}: $(EXTERNAL_LIBYAML)Makefile
-#	$(MAKE) -C $(EXTERNAL_LIBYAML)
+${LIBYAML_LIB}: $(EXTERNAL_LIBYAML)Makefile
+	$(MAKE) -C $(EXTERNAL_LIBYAML)
 
-#$(EXTERNAL_LIBYAML)Makefile:
-#ifeq (${TARGET},winagent)
-#	cd $(EXTERNAL_LIBYAML) && CC=${MING_BASE}${CC} && CFLAGS=-fPIC ./configure --host=${MINGW_HOST} --enable-static=yes
-#else
-#	cd $(EXTERNAL_LIBYAML) && CFLAGS=-fPIC ./configure --enable-static=yes --enable-shared=no
-#endif
+$(EXTERNAL_LIBYAML)Makefile:
+ifeq (${TARGET},winagent)
+	cd $(EXTERNAL_LIBYAML) && CC=${MING_BASE}${CC} && CFLAGS=-fPIC ./configure --host=${MINGW_HOST} --enable-static=yes
+else
+	cd $(EXTERNAL_LIBYAML) && CFLAGS=-fPIC ./configure --enable-static=yes --enable-shared=no
+endif
 
 #### curl ##########
 
@@ -1271,7 +1270,7 @@ endif
 
 # Agent dependencies
 #EXTERNAL_RES := cJSON curl libdb libffi libyaml openssl procps sqlite zlib audit-userspace msgpack bzip2 nlohmann googletest libpcre2 libplist pacman libarchive popt rpm
-EXTERNAL_RES := cJSON curl libdb openssl sqlite zlib msgpack bzip2 libpcre2
+EXTERNAL_RES := cJSON curl libdb libyaml openssl sqlite zlib msgpack bzip2 libpcre2
 ifneq (${TARGET},agent)
 ifneq (${TARGET},winagent)
 	# Manager extra dependency

@@ -269,9 +269,9 @@ extern const char *__local_name;
 #include "rbtree_op.h" // ./headers/sec.h 會用到 rbtree
 #include "queue_op.h"  // ./analysisd/rules.h,./analysisd/rules.h 會用到 'w_queue_t'
 #include "queue_linked_op.h" // ./headers/sec.h 會用到 w_linked_queue_node_t,w_linked_queue_t
-// #include "bqueue_op.h"
+#include "bqueue_op.h" // remoted/remoted.h會用到
 #include "store_op.h" // ./analysisd/decoders/decoder.h,./analysisd/rules.h 會用到OSStrore
-// #include "rc.h"
+#include "rc.h" // remoted會用到
 #include "ar.h" // AS_ONLY, REMOTE_AGENT, SPECIFIC_AGENT, ALL_AGENTS, REMOTE_AR, LOCAL_AR
 #include "validate_op.h" // client-config.c會用到 OS_IsValidIP()、OS_ExpandIPv6, log_builder.c會用到getDefine_Int
 // #include "file-queue.h"
@@ -284,10 +284,10 @@ extern const char *__local_name;
 #include "time_op.h" // debug_op.c會用到w_get_timestamp()
 #include "vector_op.h" // ./headers/../syscheckd/syscheck.h會用到W_Vector
 #include "exec_op.h" // wfd_t struct, #define W_BIND_STDOUT 001
-// #include "json_op.h"
+#include "json_op.h" // remoted會用到
 #include "notify_op.h" // wazuh-db/main.c要用到
 #include "version_op.h" // file_op.h呼叫的
-// #include "utf8_op.h"
+#include "utf8_op.h" // remoted會用到
 #include "rwlock_op.h" // log_builder.h會用到 struct rwlock_t
 #include "log_builder.h" // mq_op.c會用到 struct log_builder_t
 
