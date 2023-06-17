@@ -49,7 +49,7 @@ EXTERNAL_JSON=external/cJSON/
 EXTERNAL_ZLIB=external/zlib/
 EXTERNAL_SQLITE=external/sqlite/
 EXTERNAL_OPENSSL=external/openssl/
-#EXTERNAL_LIBYAML=external/libyaml/
+EXTERNAL_LIBYAML=external/libyaml/ #agentd會用到
 EXTERNAL_CURL=external/curl/
 #EXTERNAL_AUDIT=external/audit-userspace/
 #EXTERNAL_LIBFFI=external/libffi/
@@ -718,7 +718,7 @@ BUILD_SERVER+=wazuh-authd
 #BUILD_SERVER+=wazuh-modulesd
 #BUILD_SERVER+=wazuh-db
 
-#BUILD_AGENT+=wazuh-agentd
+BUILD_AGENT+=wazuh-agentd
 BUILD_AGENT+=agent-auth
 #BUILD_AGENT+=wazuh-logcollector
 #BUILD_AGENT+=wazuh-syscheckd
@@ -842,7 +842,7 @@ JSON_LIB    = $(EXTERNAL_JSON)libcjson.a
 #DB_LIB      = $(EXTERNAL_LIBDB).libs/libdb-18.1.a
 #LIBALPM_LIB  = $(EXTERNAL_PACMAN)lib/libalpm/libalpm.a
 #LIBARCHIVE_LIB  = $(EXTERNAL_LIBARCHIVE).libs/libarchive.a
-#LIBYAML_LIB = $(EXTERNAL_LIBYAML)src/.libs/libyaml.a
+LIBYAML_LIB = $(EXTERNAL_LIBYAML)src/.libs/libyaml.a
 LIBCURL_LIB = $(EXTERNAL_CURL)lib/.libs/libcurl.a
 #AUDIT_LIB 	= $(EXTERNAL_AUDIT)lib/.libs/libaudit.a
 #LIBFFI_LIB 	= $(EXTERN#AL_LIBFFI)$(TARGET)/.libs/libffi.a
@@ -1016,15 +1016,15 @@ ${EXTERNAL_JSON}%.o: ${EXTERNAL_JSON}%.c
 
 #### libyaml ##########
 
-#${LIBYAML_LIB}: $(EXTERNAL_LIBYAML)Makefile
-#	$(MAKE) -C $(EXTERNAL_LIBYAML)
+${LIBYAML_LIB}: $(EXTERNAL_LIBYAML)Makefile
+	$(MAKE) -C $(EXTERNAL_LIBYAML)
 
-#$(EXTERNAL_LIBYAML)Makefile:
-#ifeq (${TARGET},winagent)
-#	cd $(EXTERNAL_LIBYAML) && CC=${MING_BASE}${CC} && CFLAGS=-fPIC ./configure --host=${MINGW_HOST} --enable-static=yes
-#else
-#	cd $(EXTERNAL_LIBYAML) && CFLAGS=-fPIC ./configure --enable-static=yes --enable-shared=no
-#endif
+$(EXTERNAL_LIBYAML)Makefile:
+ifeq (${TARGET},winagent)
+	cd $(EXTERNAL_LIBYAML) && CC=${MING_BASE}${CC} && CFLAGS=-fPIC ./configure --host=${MINGW_HOST} --enable-static=yes
+else
+	cd $(EXTERNAL_LIBYAML) && CFLAGS=-fPIC ./configure --enable-static=yes --enable-shared=no
+endif
 
 #### curl ##########
 
@@ -1271,7 +1271,7 @@ endif
 
 # Agent dependencies
 #EXTERNAL_RES := cJSON curl libdb libffi libyaml openssl procps sqlite zlib audit-userspace msgpack bzip2 nlohmann googletest libpcre2 libplist pacman libarchive popt rpm
-EXTERNAL_RES := cJSON curl libdb openssl sqlite zlib msgpack libpcre2
+EXTERNAL_RES := cJSON curl libdb libyaml openssl sqlite zlib msgpack libpcre2
 ifneq (${TARGET},agent)
 ifneq (${TARGET},winagent)
 	# Manager extra dependency

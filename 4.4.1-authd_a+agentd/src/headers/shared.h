@@ -271,13 +271,13 @@ extern const char *__local_name;
 #include "queue_linked_op.h" // ./headers/sec.h 會用到 w_linked_queue_node_t,w_linked_queue_t
 // #include "bqueue_op.h"
 #include "store_op.h" // ./analysisd/decoders/decoder.h,./analysisd/rules.h 會用到OSStrore
-// #include "rc.h"
+#include "rc.h" // agentd會用到
 #include "ar.h" // AS_ONLY, REMOTE_AGENT, SPECIFIC_AGENT, ALL_AGENTS, REMOTE_AR, LOCAL_AR
 #include "validate_op.h" // client-config.c會用到 OS_IsValidIP()、OS_ExpandIPv6, log_builder.c會用到getDefine_Int
-// #include "file-queue.h"
+#include "file-queue.h" // agentd會用到
 // #include "json-queue.h"
 // #include "read-agents.h"
-// #include "report_op.h"
+#include "report_op.h" // agentd會用到
 #include "string_op.h" // log_builder.c會用到wstr_escape_json()
 #include "randombytes.h" // os_crtypt/shared/msgs.c,addagent/validate.c 會用到os_random()
 #include "labels_op.h" // struct wlabel_t
@@ -300,11 +300,11 @@ extern const char *__local_name;
 #include "error_messages/warning_messages.h"
 // #include "custom_output_search.h"
 #include "url.h"
-// #include "yaml2json.h"
+#include "yaml2json.h" // agentd會用到
 // #include "cluster_utils.h"
 #include "auth_client.h"
-// #include "os_utils.h"
-// #include "schedule_scan.h"
+#include "os_utils.h" // agentd會用到
+#include "schedule_scan.h" // agentd會用到
 // #include "bzip2_op.h"
 #include "enrollment_op.h"
 // #include "buffer_op.h"

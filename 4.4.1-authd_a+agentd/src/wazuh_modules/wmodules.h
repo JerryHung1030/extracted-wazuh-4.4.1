@@ -61,18 +61,18 @@ typedef enum crypto_type {
 
 // Inclusion of modules // JNote 先註解調一大部分。
 
-// #include "wm_oscap.h"
+// #include "wm_oscap.h" // agentd 會用到
 // #include "wm_database.h"
-// #include "wm_syscollector.h"
+// #include "wm_syscollector.h" // agentd 會用到
 // #include "wm_command.h"
 // #include "wm_ciscat.h"
 // #include "wm_aws.h"
 // #include "vulnerability_detector/wm_vuln_detector.h"
-// #include "wm_osquery_monitor.h"
+// #include "wm_osquery_monitor.h" // agentd 會用到
 // #include "wm_download.h"
 // #include "wm_azure.h"
 // #include "wm_docker.h"
-// #include "wm_sca.h"
+#include "wm_sca.h" // agentd 會用到
 // #include "wm_fluent.h"
 #include "wm_control.h" // wmodules.c會用到wm_control_read()
 // #include "wm_gcp.h"
