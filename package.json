@@ -1,0 +1,19 @@
+{
+  "name": "wazuh_extracted",
+  "version": "1.0.0",
+  "description": "NA",
+  "main": "makefile",
+  "scripts": {
+    "test": "./install.sh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JerryHung1030/extracted-wazuh-4.4.1.git"
+  },
+  "author": "Jerry",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/JerryHung1030/extracted-wazuh-4.4.1/issues"
+  },
+  "homepage": "https://github.com/JerryHung1030/extracted-wazuh-4.4.1#readme"
+}
