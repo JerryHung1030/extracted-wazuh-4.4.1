@@ -53,7 +53,6 @@ int receive_msg()
             recv_b = OS_RecvSecureTCP(agt->sock, buffer, OS_MAXSTR);
 
             // Manager disconnected or error
-
             if (recv_b <= 0) {
                 switch (recv_b) {
                 case OS_SOCKTERR:
@@ -94,9 +93,11 @@ int receive_msg()
             continue;
         }
 
+        mdebug1("Received message: '%s'", tmp_msg);
         mdebug2("Received message: '%s'", tmp_msg);
 
         /* Check for commands */
+        // 確定是否是控制的訊息，再去掉控制的header
         if (IsValidHeader(tmp_msg)) {
             undefined_msg_logged = 0;
 
@@ -104,23 +105,33 @@ int receive_msg()
             w_agentd_state_update(UPDATE_ACK, (void *) &available_server);
 
             /* If it is an active response message */
+            // 前6個字如果是"execd "的話
             if (strncmp(tmp_msg, EXECD_HEADER, strlen(EXECD_HEADER)) == 0) {
+                minfo("(main) this msg is a ar msg");
                 tmp_msg += strlen(EXECD_HEADER);
 #ifndef WIN32
                 if (agt->execdq >= 0) {
+                    minfo("(main) send execd msg to execd!!");
+                    // 把"execd "接下來的字串傳給execd
                     if (OS_SendUnix(agt->execdq, tmp_msg, 0) < 0) {
                         merror("Error communicating with execd");
                     }
                 }
 #else
                 if (agt->execdq >= 0) {
+                    minfo("(main) push execd msg to windows queue!!");
                     queue_push_ex(winexec_queue, strdup(tmp_msg));
                 }
 #endif
+                // JAdd : for testing!!!
+                else {
+                    minfo("(main) execd is not available!! can't send");
+                }
                 continue;
             }
 
             /* Force reconnect agent to the manager */
+            // 如果前幾個字是"force_reconnect"的話就強迫要重新連線
             else if (strncmp(tmp_msg, HC_FORCE_RECONNECT, strlen(HC_FORCE_RECONNECT)) == 0) {
                 /* Set lock and wait for it */
                 minfo("Wazuh Agent will be reconnected because a reconnect message was received");
@@ -128,6 +139,7 @@ int receive_msg()
                 w_agentd_state_update(UPDATE_STATUS, (void *) GA_STATUS_NACTIVE);
 
                 /* Send sync message */
+                // 重新hnadshake
                 start_agent(0);
 
                 os_delwait();
@@ -135,41 +147,66 @@ int receive_msg()
                 continue;
             }
 
-            /* Syscheck */
+            // JAdd : 這些訊息目前都先不處理，所以收到就先跳個警訊
+            else if (strncmp(tmp_msg, HC_SK, strlen(HC_SK)) == 0
+                     || strncmp(tmp_msg, HC_FIM_FILE, strlen(HC_FIM_FILE)) == 0 
+                     || strncmp(tmp_msg, HC_FIM_REGISTRY, strlen(HC_FIM_REGISTRY)) == 0 
+                     || strncmp(tmp_msg, HC_SYSCOLLECTOR, strlen(HC_SYSCOLLECTOR)) == 0 
+                     || IS_REQ(tmp_msg)
+                     || strncmp(tmp_msg, CFGA_DB_DUMP, strlen(CFGA_DB_DUMP)) == 0) {
+                minfo("JComment : Can't process some messages(syscheck, fim_file, fim_registry, syscollector_) for now");
+                continue;
+            }
+
+            /* JComment : 先不處理這些訊息
+            // Syscheck
+            // 如果前幾個字是"syscheck "的話
             else if (strncmp(tmp_msg, HC_SK, strlen(HC_SK)) == 0) {
                 ag_send_syscheck(tmp_msg + strlen(HC_SK));
                 continue;
             }
+            // 如果前幾個字是"fim_file "的話
             else if (strncmp(tmp_msg, HC_FIM_FILE, strlen(HC_FIM_FILE)) == 0) {
                 ag_send_syscheck(tmp_msg + strlen(HC_FIM_FILE));
                 continue;
             }
+            // 如果前幾個字是"fim_registry "的話
             else if (strncmp(tmp_msg, HC_FIM_REGISTRY, strlen(HC_FIM_REGISTRY)) == 0) {
                 ag_send_syscheck(tmp_msg + strlen(HC_FIM_REGISTRY));
                 continue;
             }
 
-            /* Syscollector */
-            else if (strncmp(tmp_msg, HC_SYSCOLLECTOR, strlen(HC_SYSCOLLECTOR)) == 0) {
+            // Syscollector
+            // 如果前幾個字是"syscollector_"的話
+            else if (strncmp(tmp_msg, HC_SYSCOLLECTOR, strlen(HC_SYSCOLLECTOR)) == 0) {\
+                // 傳送給queue/sockets/wmodules
                 wmcom_send(tmp_msg);
                 continue;
             }
+            */
 
             /* Ack from server */
+            // 如果前幾個字是"agent ack"的話
             else if (strcmp(tmp_msg, HC_ACK) == 0) {
                 continue;
             }
 
+            /* JComment : 先不處理這些訊息req
             // Request from manager (or request ack)
+            // 如果前3個字是"req"的話 會把來自server的request推進request queue中
+            // 然後另一個thread會去處理這邊的訊息
             else if (IS_REQ(tmp_msg)) {
                 req_push(tmp_msg + strlen(HC_REQUEST), msg_length - strlen(HC_REQUEST) - 3);
                 continue;
             }
+            */
 
             /* Security configuration assessment DB request */
+            /* JComment : 先不處理這些訊息
+            // 如果前3個字是"sca_dump"的話
             else if (strncmp(tmp_msg, CFGA_DB_DUMP, strlen(CFGA_DB_DUMP)) == 0) {
 #ifndef WIN32
-                /* Connect to the Security configuration assessment queue */
+                // Connect to the Security configuration assessment queue
                 if (agt->cfgadq >= 0) {
                     if (OS_SendUnix(agt->cfgadq, tmp_msg, 0) < 0) {
                         mwarn("Error communicating with Security configuration assessment");
@@ -203,6 +240,11 @@ int receive_msg()
 #endif
                 continue;
             }
+            */
+           // 
+            else {
+                mwarn("Unknown message received from server.");
+            }
 
             /* Close any open file pointer if it was being written to */
             if (fp) {
@@ -211,13 +253,15 @@ int receive_msg()
             }
 
             /* File update message */
+            // 這邊處理標頭是"up file"的訊息，後面應該會更著一串 file sum + file name
+            /* JDelete : 這邊不處理file的問題，直接把"up file"跟"close file"的control msg都刪掉
             if (strncmp(tmp_msg, FILE_UPDATE_HEADER,
                         strlen(FILE_UPDATE_HEADER)) == 0) {
                 char *validate_file;
 
                 tmp_msg += strlen(FILE_UPDATE_HEADER);
 
-                /* Going to after the file sum */
+                // Going to after the file sum
                 validate_file = strchr(tmp_msg, ' ');
                 if (!validate_file) {
                     continue;
@@ -225,10 +269,10 @@ int receive_msg()
 
                 *validate_file = '\0';
 
-                /* Copy the file sum */
+                // Copy the file sum
                 strncpy(file_sum, tmp_msg, 33);
 
-                /* Set tmp_msg to the beginning of the file name */
+                // Set tmp_msg to the beginning of the file name
                 validate_file++;
                 tmp_msg = validate_file;
 
@@ -247,24 +291,27 @@ int receive_msg()
                 snprintf(file, OS_SIZE_1024, "%s/%s",
                          SHAREDCFG_DIR,
                          tmp_msg);
-
+                // 打開這個在shared檔案夾下的檔案，可能是merged.mg
                 fp = fopen(file, "w");
                 if (!fp) {
                     merror(FOPEN_ERROR, file, errno, strerror(errno));
                 }
             }
-
+            */
+            
+            // 這邊處理要關起來的檔案夾名稱
+            /* JDelete : 這邊不處理file的問題，直接把"up file"跟"close file"的control msg都刪掉
             else if (strncmp(tmp_msg, FILE_CLOSE_HEADER,
                              strlen(FILE_CLOSE_HEADER)) == 0) {
-                /* No error */
+                // No error
                 os_md5 currently_md5;
 
                 if (file[0] == '\0') {
-                    /* Nothing to be done */
+                    // Nothing to be done
                 }
 
                 else if (OS_MD5_File(file, currently_md5, OS_TEXT) < 0) {
-                    /* Remove file */
+                    // Remove file
                     unlink(file);
                     file[0] = '\0';
                 } else {
@@ -275,7 +322,7 @@ int receive_msg()
                     } else {
                         char *final_file;
 
-                        /* Rename the file to its original name */
+                        // Rename the file to its original name
                         final_file = strrchr(file, '/');
                         if (final_file) {
                             if (strcmp(final_file + 1, SHAREDCFG_FILENAME) == 0) {
@@ -302,7 +349,7 @@ int receive_msg()
                                 }
                             }
                         } else {
-                            /* Remove file */
+                            // Remove file
                             unlink(file);
                         }
                     }
@@ -310,18 +357,18 @@ int receive_msg()
                     file[0] = '\0';
                 }
             }
-
             else {
                 mwarn("Unknown message received from server.");
             }
+            */
         }
 
+        // 這邊代表不是control msgs，而且 fp 有東西
         else if (fp) {
             available_server = (int)time(NULL);
             w_agentd_state_update(UPDATE_ACK, (void *) &available_server);
             fprintf(fp, "%s", tmp_msg);
         }
-
         else if (!undefined_msg_logged) {
             mwarn("Unknown message received. No action defined.");
             undefined_msg_logged = 1;

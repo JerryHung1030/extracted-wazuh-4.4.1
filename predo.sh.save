@@ -1,0 +1,15 @@
+DIR="/var/ossec"
+GROUP="test"
+USER="test"
+
+sys_acct_chk () {
+    $1 --help 2>&1 | grep -e " *-r.*system account" >/dev/null 2>&1 && echo "$1 -r" || echo "$1"
+}
+GROUPADD=$(sys_acct_chk "/usr/sbin/groupadd -f")
+USERADD=$(sys_acct_chk "/usr/sbin/useradd")
+    OSMYSHELL="/sbin/nologin"
+    if ! grep "^${GROUP}:" /etc/group > /dev/null 2>&1; then
+        ${GROUPADD} "${GROUP}"
+    fi
+${GROUPADD} "${GROUP}"
+${USERADD} "${USER}" -d "${DIR}" -s ${OSMYSHELL} -g "${GROUP}"

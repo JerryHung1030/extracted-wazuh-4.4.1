@@ -136,20 +136,28 @@ int OS_Bindportudp(u_int16_t _port, const char *_ip, int ipv6)
 /* Bind to a Unix domain, DGRAM sockets while allowing the caller to specify owner and permission bits. */
 int OS_BindUnixDomainWithPerms(const char *path, int type, int max_msg_size, uid_t uid, gid_t gid, mode_t mode)
 {
+    // 創一個sockaddr_un struct，用來表示Unix domain socket的地址
+    // sa_family_t sun_family：表示地址家族，通常為 AF_UNIX，用於指定 Unix 域套接字的類型。
+    // char sun_path[108]：是一個字元陣列，用於存儲 Unix 域套接字的檔案路徑名稱。在該陣列中，一般會使用絕對路徑名稱，最大長度為 108 個字元。
     struct sockaddr_un n_us;
     int ossock = 0;
 
     /* Make sure the path isn't there */
+    // unlink的用途是刪除指定路徑下的文件
     unlink(path);
 
+    // set sizeof(n_us) bytes of n_us
     memset(&n_us, 0, sizeof(n_us));
     n_us.sun_family = AF_UNIX;
     strncpy(n_us.sun_path, path, sizeof(n_us.sun_path) - 1);
 
+    // socket : create a socket of type (write, read)，第三個參數0代表不選擇並自動選擇protocol
+    // 如果成功的話會return一個fd, 失敗的話會return -1
     if ((ossock = socket(AF_UNIX, type, 0)) < 0) {
         return (OS_SOCKTERR);
     }
 
+    // give the socket fd-ossock the local address arg[1] (size is arg[2])
     if (bind(ossock, (struct sockaddr *)&n_us, SUN_LEN(&n_us)) < 0) {
         OS_CloseSocket(ossock);
         return (OS_SOCKTERR);
@@ -178,6 +186,7 @@ int OS_BindUnixDomainWithPerms(const char *path, int type, int max_msg_size, uid
         return (OS_SOCKTERR);
     }
 
+    // 設定這個socket，在執行期間關閉此檔案
     // Set close-on-exec
     if (fcntl(ossock, F_SETFD, FD_CLOEXEC) == -1) {
         mwarn("Cannot set close-on-exec flag to socket: %s (%d)", strerror(errno), errno);
@@ -206,8 +215,10 @@ int OS_ConnectUnixDomain(const char *path, int type, int max_msg_size)
     n_us.sun_family = AF_UNIX;
 
     /* Set up path */
+    // 設定n_us的路徑為"queue/socket/queue"
     strncpy(n_us.sun_path, path, sizeof(n_us.sun_path) - 1);
 
+    // 創建一個SOCK_DGRAM type 的 unix domain socket
     if ((ossock = socket(AF_UNIX, type, 0)) < 0) {
         return (OS_SOCKTERR);
     }

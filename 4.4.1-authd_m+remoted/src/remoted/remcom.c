@@ -212,7 +212,7 @@ void * remcom_main(__attribute__((unused)) void * arg) {
     fd_set fdset;
 
     mdebug1("Local requests thread ready");
-
+    // bind to "/queue/socket/remote"
     if (sock = OS_BindUnixDomain(REMOTE_LOCAL_SOCK, SOCK_STREAM, OS_MAXSTR), sock < 0) {
         merror("Unable to bind to socket '%s': (%d) '%s'", REMOTE_LOCAL_SOCK, errno, strerror(errno));
         return NULL;

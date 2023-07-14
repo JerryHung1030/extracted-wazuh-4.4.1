@@ -15,6 +15,7 @@
 
 OSHash *ptable;
 static remote_files_group *agent_remote_group;
+// yaml_file 是一個 "etc/shared/files.yml"
 static char yaml_file[OS_SIZE_1024 + 1];
 static time_t yaml_file_date;
 static ino_t yaml_file_inode;
@@ -511,7 +512,7 @@ int w_init_shared_download()
         merror(W_PARSER_HASH_TABLE_ERROR);
         return OS_INVALID;
     }
-
+    
     snprintf(yaml_file, OS_SIZE_1024, "%s/%s", SHAREDCFG_DIR, W_SHARED_YAML_FILE);
 
     if (w_prepare_parsing() == 1) {

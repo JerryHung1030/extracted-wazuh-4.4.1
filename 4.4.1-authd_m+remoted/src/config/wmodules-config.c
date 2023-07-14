@@ -74,7 +74,7 @@ int Read_WModule(const OS_XML *xml, xml_node *node, void *d1, void *d2)
     // Select module by name
 
     //osQuery monitor module
-    // JNote : 這邊被我註解掉os_query的部分
+    // ************ JNote : 這邊被我註解掉os_query的部分
     /*
     if (!strcmp(node->values[0], WM_OSQUERYMONITOR_CONTEXT.name)) {
         if (wm_osquery_monitor_read(children, cur_wmodule) < 0) {
@@ -163,7 +163,7 @@ int Read_WModule(const OS_XML *xml, xml_node *node, void *d1, void *d2)
     return 0;
 }
 
-// JNote : 註解掉
+// ************ JNote : 註解掉
 /*
 int Read_SCA(const OS_XML *xml, xml_node *node, void *d1)
 {
@@ -221,7 +221,7 @@ int Read_SCA(const OS_XML *xml, xml_node *node, void *d1)
     return 0;
 }*/
 
-// JNote : 註解掉
+// ************ JNote : 註解掉
 /*
 int Read_GCP_pubsub(const OS_XML *xml, xml_node *node, void *d1) {
     wmodule **wmodules = (wmodule**)d1;
@@ -282,7 +282,7 @@ int Read_GCP_pubsub(const OS_XML *xml, xml_node *node, void *d1) {
     return 0;
 }*/
 
-// JNote : 註解掉
+// ************ JNote : 註解掉
 /*
 int Read_GCP_bucket(const OS_XML *xml, xml_node *node, void *d1) {
     wmodule **wmodules = (wmodule**)d1;
@@ -457,7 +457,7 @@ int Read_TaskManager(const OS_XML *xml, xml_node *node, void *d1) {
 #endif
 
 #ifndef WIN32
-// JNote : 註解掉
+// ************ JNote : 註解掉
 /*
 int Read_Fluent_Forwarder(const OS_XML *xml, xml_node *node, void *d1)
 {
@@ -560,7 +560,7 @@ int Read_Github(const OS_XML *xml, xml_node *node, void *d1) {
     }
 
     //GitHub module
-    // JNote : 註解掉
+    // ************ JNote : 註解掉
     /*
     if (!strcmp(node->element, WM_GITHUB_CONTEXT.name)) {
         if (wm_github_read(xml, children, cur_wmodule) < 0) {
@@ -573,7 +573,7 @@ int Read_Github(const OS_XML *xml, xml_node *node, void *d1) {
     return 0;
 }
 
-// JNote : 註解掉
+// ************ JNote : 註解掉
 /*
 int Read_Office365(const OS_XML *xml, xml_node *node, void *d1) {
     wmodule **wmodules = (wmodule**)d1;

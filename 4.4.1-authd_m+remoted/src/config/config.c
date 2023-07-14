@@ -54,7 +54,7 @@ static int read_main_elements(const OS_XML *xml, int modules,
     const char *task_manager = "task-manager";          /* Task Manager Module */
     const char *wazuh_db = "wdb";                       /* Wazuh-DB Daemon */
 #ifndef WIN32
-// JNote : 下面被我註解
+// ************ JNote : 下面被我註解
 //    const char *osfluent_forward = "fluent-forward";    /* Fluent forwarder */
     const char *osauthd = "auth";                       /* Authd Config */
 //    const char *osreports = "reports";                  /* Server Config */
@@ -63,7 +63,7 @@ static int read_main_elements(const OS_XML *xml, int modules,
 #endif
 #endif
 #if defined(WIN32) || defined(__linux__) || defined(__MACH__)
-// JNote : 註解掉下面兩行
+// ************ JNote : 註解掉下面兩行
 //    const char *github = "github";                      /* GitHub Module */
 //    const char *office365 = "office365";                /* Office365 Module */
 #endif
@@ -165,7 +165,7 @@ static int read_main_elements(const OS_XML *xml, int modules,
             if ((modules & CREPORTS) && (Read_CReports(chld_node, d1, d2) < 0)) {
                 goto fail;
             }
-        }*/ // 0606 JNote : 我先mark掉，為了處理 undefine reference 的 error
+        }*/ // 0606 ************ JNote : 我先mark掉，為了處理 undefine reference 的 error
 #endif
         else if (strcmp(node[i]->element, oswmodule) == 0) {
             if ((modules & CWMODULE) && (Read_WModule(xml, node[i], d1, d2) < 0)) {
@@ -183,12 +183,12 @@ static int read_main_elements(const OS_XML *xml, int modules,
             if ((modules & CWMODULE) && (Read_SCA(xml, node[i], d1) < 0)) {
                 goto fail;
             }
-        }*/ // 0606 JNote : 我先mark掉，為了處理 undefine reference 的 error
+        }*/ // 0606 ************ JNote : 我先mark掉，為了處理 undefine reference 的 error
         else if (strcmp(node[i]->element, osvulndet) == 0) {
 #if !defined(WIN32) && !defined(CLIENT)
 /*            if ((modules & CWMODULE) && (Read_Vuln(xml, chld_node, d1, 1) < 0)) {
                 goto fail;
-            }*/ // 0606 JNote : 我先mark掉，為了處理 undefine reference 的 error
+            }*/ // 0606 ************ JNote : 我先mark掉，為了處理 undefine reference 的 error
 #else
             mwarn("%s configuration is only set in the manager.", node[i]->element);
 #endif
@@ -201,13 +201,13 @@ static int read_main_elements(const OS_XML *xml, int modules,
             if ((modules & CWMODULE) && (Read_GCP_bucket(xml, node[i], d1) < 0)) {
                 goto fail;
             }
-        } */ // 0606 JNote : 我先mark掉，為了處理 undefine reference 的 error
+        } */ // 0606 ************ JNote : 我先mark掉，為了處理 undefine reference 的 error
 #ifndef WIN32
         /*else if (strcmp(node[i]->element, osfluent_forward) == 0) {
             if ((modules & CWMODULE) && (Read_Fluent_Forwarder(xml, node[i], d1) < 0)) {
                 goto fail;
             }
-        }*/ // 0606 JNote : 我先mark掉，為了處理 undefine reference 的 error
+        }*/ // 0606 ************ JNote : 我先mark掉，為了處理 undefine reference 的 error
         else if (strcmp(node[i]->element, osauthd) == 0) {
             if ((modules & CAUTHD) && (Read_Authd(xml, chld_node, d1, d2) < 0)) {
                 goto fail;
@@ -234,7 +234,7 @@ static int read_main_elements(const OS_XML *xml, int modules,
             if ((modules & CWMODULE) && !(modules & CAGENT_CONFIG) && (Read_AgentUpgrade(xml, node[i], d1) < 0)) {
                 goto fail;
             }
-        }*/ // 0606 JNote : 我先mark掉，為了處理 undefine reference 的 error
+        }*/ // 0606 ************ JNote : 我先mark掉，為了處理 undefine reference 的 error
         else if (chld_node && (strcmp(node[i]->element, task_manager) == 0)) {
             #if !defined(WIN32) && !defined(CLIENT)
                 if ((modules & CWMODULE) && (Read_TaskManager(xml, node[i], d1) < 0)) {
@@ -262,7 +262,7 @@ static int read_main_elements(const OS_XML *xml, int modules,
             if ((modules & CWMODULE) && (Read_Office365(xml, node[i], d1) < 0)) {
                 goto fail;
             }
-        }*/ // 0606 JNote : 我先mark掉，為了處理 undefine reference 的 error
+        }*/ // 0606 ************ JNote : 我先mark掉，為了處理 undefine reference 的 error
 #endif
         else {
             merror(XML_INVELEM, node[i]->element);

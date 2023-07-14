@@ -16,7 +16,7 @@
 wnotify_t * wnotify_init(int size) {
     wnotify_t * notify;
     int fd;
-
+    
     if (fd = epoll_create(size), fd < 0) {
         return NULL;
     }

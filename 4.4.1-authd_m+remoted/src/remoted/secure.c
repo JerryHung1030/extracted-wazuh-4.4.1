@@ -1,3 +1,7 @@
+/* ************ JNote :
+ * 0620 - 加上註解
+ */
+
 /* Copyright (C) 2015, Wazuh Inc.
  * Copyright (C) 2009 Trend Micro Inc.
  * All right reserved.
@@ -85,6 +89,7 @@ void HandleSecure()
     remoted_state.uptime = time(NULL);
 
     /* Create OSHash for agents statistics */
+    // 這邊是要給state.c用的，用來存active agent的list
     remoted_agents_state = OSHash_Create();
     if (!remoted_agents_state) {
         merror_exit(HASH_ERROR);
@@ -102,30 +107,45 @@ void HandleSecure()
     /* Initialize the agent key table mutex */
     key_lock_init();
 
+    // ############# JDelete : mark掉自動更新share_files的功能
     /* Create shared file updating thread */
-    w_create_thread(update_shared_files, NULL);
+    // 定期去檢查跟更新Update shared files. (etc/shared/files.yml)
+    // 這邊可能可以不用實作
+    //  w_create_thread(update_shared_files, NULL);
 
     /* Create Active Response forwarder thread */
     w_create_thread(AR_Forward, NULL);
 
+    // ############# JDelete : mark掉幫忙pass SCFGA data to agent
     /* Create Security configuration assessment forwarder thread */
-    w_create_thread(SCFGA_Forward, NULL);
+    // 幫忙pass SCFGA data to agent
+    // w_create_thread(SCFGA_Forward, NULL);
 
+    /* ############# JDelete : mark掉request module的部分
     // Initialize request module
     req_init();
 
     // Create com request thread
+    // local request queue, 用來處理"/queue/socket/remote"這個queue
     w_create_thread(remcom_main, NULL);
+    */
 
-    // Create State writer thread
+    // ############# JDelete : 這邊要留下來，他會定期去清理沒有上線的Agent List
+    // Create State writer thread，這邊主要是做了以下兩件事 :
+    //    - 把remote相關的新狀態寫進 var/run/"localname".state (這個先被mark掉了)
+    //    - 更新Database中的資料
     w_create_thread(rem_state_main, NULL);
 
+    /* ############# JDelete : mark掉key_request的部分
     key_request_queue = queue_init(1024);
 
     // Create key request thread
     w_create_thread(key_request_thread, NULL);
+    */
 
     /* Create wait_for_msgs threads */
+    // ************ JNote : 先保留這邊，這邊應該跟keep-alive msg有關。
+    /* ############# JDelete : 這邊主要在做share_file的傳送跟處理，先刪了
     {
         sender_pool = getDefine_Int("remoted", "sender_pool", 1, 64);
 
@@ -134,7 +154,7 @@ void HandleSecure()
         for (int i = 0; i < sender_pool; i++) {
             w_create_thread(wait_for_msgs, NULL);
         }
-    }
+    }*/
 
     // Reset all the agents' connection status in Wazuh DB
     // The master will disconnect and alert the agents on its own DB. Thus, synchronization is not required.
@@ -142,6 +162,8 @@ void HandleSecure()
         mwarn("Unable to reset the agents' connection status. Possible incorrect statuses until the agents get connected to the manager.");
 
     // Create message handler thread pool
+    // ************ JNote : 先保留傳送event給analysisd，之後可能可以拿來傳log
+    // 負責把來自Agent的event傳送給Analysisd
     {
         int worker_pool = getDefine_Int("remoted", "worker_pool", 1, 16);
         // Initialize FD list and counter.
@@ -156,9 +178,12 @@ void HandleSecure()
     /* Connect to the message queue
      * Exit if it fails.
      */
+    // 這邊logr.m_queue會被設定成一個client去connect "queue/socket/queue" 的file descriptor
+    // 這邊的這個queue會用來傳給analysisd用
+    /*
     if ((logr.m_queue = StartMQ(DEFAULTQUEUE, WRITE, INFINITE_OPENQ_ATTEMPTS)) < 0) {
         merror_exit(QUEUE_FATAL, DEFAULTQUEUE);
-    }
+    }*/
 
     /* Read authentication keys */
     minfo(ENC_READ);
@@ -170,10 +195,17 @@ void HandleSecure()
     OS_StartCounter(&keys);
 
     // Key reloader thread
+    // ************ JNote : 這邊要留，因為他要知道key有被更新過。
     w_create_thread(rem_keyupdate_main, NULL);
 
+    /* ############# JDelete : mark掉fp closer thread
     // fp closer thread
-    w_create_thread(close_fp_main, &keys);
+    // 這邊主要會pop keys->opened_fp_queue 出來處理
+    // pop出來之後關掉file並初始化updating_time跟rids_node
+    // 而這個key->opened_fp_queue的file是在 StoreCounter()中開啟後push進去的
+    // 這些file是被放在 "queue/rids/"agent_id"
+    // (但用途還不清楚)
+    w_create_thread(close_fp_main, &keys);*/
 
     /* Set up peer size */
     logr.peer_size = sizeof(peer_info);
@@ -197,6 +229,7 @@ void HandleSecure()
         }
     }
 
+    // Start looping
     while (1) {
 
         /* It waits for a socket event */
@@ -212,6 +245,7 @@ void HandleSecure()
         for (int i = 0u; i < n_events; i++) {
             // Returns the fd of the socket that recived a message
             wevent_t event;
+            // 會取得被觸發的fd
             int fd = wnotify_get(notify, i, &event);
 
             // In case of failure or unexpected file descriptor
@@ -220,6 +254,7 @@ void HandleSecure()
                 continue;
             }
             // If a new TCP connection was received and TCP is enabled
+            // 如果這個fd是server的connection socket就代表
             else if ((fd == logr.tcp_sock) && (protocol & REMOTED_NET_PROTOCOL_TCP)) {
                 handle_new_tcp_connection(notify, &peer_info);
             }
@@ -228,10 +263,14 @@ void HandleSecure()
                 handle_incoming_data_from_udp_socket(&peer_info);
             }
             // If a message was received through a TCP client and tcp is enabled
+            // 這邊開一個socket開始listen，等到Agent傳送event過來後，會把他push進queue。
+            // 之後上面已經開好的thread rem_handler_main 就會把資料pop出來做動作。
             else if ((protocol & REMOTED_NET_PROTOCOL_TCP) && (event & WE_READ)) {
                 handle_incoming_data_from_tcp_socket(fd);
             }
             // If a TCP client socket is ready for sending and tcp is enabled
+            // 這邊會處理傳輸AR_Forward()push進來的資料，如果有收到notify說可以傳了
+            // 這邊就會去把它傳出去
             else if ((protocol & REMOTED_NET_PROTOCOL_TCP) && (event & WE_WRITE)) {
                 handle_outgoing_data_to_tcp_socket(fd);
             }
@@ -243,6 +282,7 @@ void HandleSecure()
 
 STATIC void handle_new_tcp_connection(wnotify_t * notify, struct sockaddr_storage * peer_info)
 {
+    // 這會是一個新的sd，以後和client交談的就是這個sd
     int sock_client = accept(logr.tcp_sock, (struct sockaddr *) peer_info, &logr.peer_size);
 
     if (sock_client >= 0) {
@@ -253,6 +293,7 @@ STATIC void handle_new_tcp_connection(wnotify_t * notify, struct sockaddr_storag
 
         mdebug1("New TCP connection [%d]", sock_client);
 
+        // 把這個與client溝通的sd放進監控list裡面，如果之後連線過的agent就可以從這邊跟server溝通
         if (wnotify_add(notify, sock_client, WO_READ) < 0) {
             merror("wnotify_add(%d, %d): %s (%d)", notify->fd, sock_client, strerror(errno), errno);
             _close_sock(&keys, sock_client);
@@ -283,6 +324,7 @@ STATIC void handle_incoming_data_from_udp_socket(struct sockaddr_storage * peer_
 
 STATIC void handle_incoming_data_from_tcp_socket(int sock_client)
 {
+    // 這邊的nb_recv也會做rem_msgpush()，把message push 進queue
     int recv_b = nb_recv(&netbuffer_recv, sock_client);
 
     switch (recv_b) {
@@ -351,7 +393,10 @@ void * rem_handler_main(__attribute__((unused)) void * args) {
     mdebug1("Message handler thread started.");
 
     while (1) {
+        // 這邊會取得一個來自Agent的event message
+        // 就是secure.c 的 main當中要push近來的資料
         message = rem_msgpop();
+        // message->sock就是當初server跟agent傳輸用的socket
         if (message->sock == USING_UDP_NO_CLIENT_SOCKET || message->counter > rem_getCounter(message->sock)) {
             HandleSecureMessage(message, &wdb_sock);
         } else {
@@ -515,7 +560,7 @@ STATIC void HandleSecureMessage(const message_t *message, int *wdb_sock) {
             return;
         } else {
             w_mutex_lock(&keys.keyentries[agentid]->mutex);
-
+            // 這邊在處理未知Agent的訊息
             if ((keys.keyentries[agentid]->sock >= 0) && (keys.keyentries[agentid]->sock != message->sock)) {
                 mwarn("Agent key already in use: agent ID '%s'", keys.keyentries[agentid]->id);
 
@@ -599,7 +644,7 @@ STATIC void HandleSecureMessage(const message_t *message, int *wdb_sock) {
         if (message->sock >= 0) {
             _close_sock(&keys, message->sock);
         }
-
+        // 增加接收到unkown msg的
         rem_inc_recv_unknown();
         return;
     }
@@ -613,7 +658,7 @@ STATIC void HandleSecureMessage(const message_t *message, int *wdb_sock) {
             if (ip_found) {
                 push_request(srcip, "ip");
             } else {
-                push_request(buffer + 1, "id");
+                push_request(buffer + 1, "id"); 
             }
         }
 
@@ -630,7 +675,8 @@ STATIC void HandleSecureMessage(const message_t *message, int *wdb_sock) {
     if (IsValidHeader(tmp_msg)) {
 
         /* We need to save the peerinfo if it is a control msg */
-
+        // 如果已經確定是control msg的話，需要把這個socket資料存起來
+        // 對應agent_id儲存，未來會用的到。
         w_mutex_lock(&keys.keyentries[agentid]->mutex);
         keys.keyentries[agentid]->net_protocol = protocol;
         keys.keyentries[agentid]->rcvd = time(0);
@@ -638,13 +684,14 @@ STATIC void HandleSecureMessage(const message_t *message, int *wdb_sock) {
 
         keyentry * key = OS_DupKeyEntry(keys.keyentries[agentid]);
 
+        // 把這個傳送control msg的agent的socket對應agent id存起來
         if (protocol == REMOTED_NET_PROTOCOL_TCP) {
             if (message->counter > rem_getCounter(message->sock)) {
                 keys.keyentries[agentid]->sock = message->sock;
             }
 
             w_mutex_unlock(&keys.keyentries[agentid]->mutex);
-
+            
             r = OS_AddSocket(&keys, agentid, message->sock);
 
             switch (r) {
@@ -669,6 +716,7 @@ STATIC void HandleSecureMessage(const message_t *message, int *wdb_sock) {
 
         // The critical section for readers closes within this function
         save_controlmsg(key, tmp_msg, msg_length - 3, wdb_sock);
+        // 更新接收到control msg 的 counter
         rem_inc_recv_ctrl(key->id);
 
         OS_FreeKey(key);
@@ -676,6 +724,10 @@ STATIC void HandleSecureMessage(const message_t *message, int *wdb_sock) {
     }
 
     /* Generate srcmsg */
+    // 如果到這邊，就表示資料不是control msg，而是event
+    // 所以就把event訊息傳送給message queue
+    // Analysisd會去讀。
+    /* JDelete : 而這邊目前先不用實作，所以我整個拿掉。 
 
     snprintf(srcmsg, OS_FLSIZE, "[%s] (%s) %s", keys.keyentries[agentid]->id,
              keys.keyentries[agentid]->name, keys.keyentries[agentid]->ip->ip);
@@ -684,9 +736,9 @@ STATIC void HandleSecureMessage(const message_t *message, int *wdb_sock) {
 
     key_unlock();
 
-    /* If we can't send the message, try to connect to the
-     * socket again. If it not exit.
-     */
+    // If we can't send the message, try to connect to the
+    // socket again. If it not exit.
+    //
     if (SendMSG(logr.m_queue, tmp_msg, srcmsg, SECURE_MQ) < 0) {
         merror(QUEUE_ERROR, DEFAULTQUEUE, strerror(errno));
 
@@ -706,6 +758,7 @@ STATIC void HandleSecureMessage(const message_t *message, int *wdb_sock) {
     }
 
     os_free(agentid_str);
+    // JDelete */ 
 }
 
 // Close and remove socket from keystore

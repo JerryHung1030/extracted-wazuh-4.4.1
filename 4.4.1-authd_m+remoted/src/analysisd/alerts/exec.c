@@ -199,6 +199,7 @@ void OS_Exec(int *execq, int *arq, int *sock, const Eventinfo *lf, const active_
                 goto cleanup;
             }
 
+            // 意思是只要agt_id的前三個數字就好
             snprintf(c_agent_id, OS_SIZE_16, "%.3d", agt_id);
 
             agt_labels = labels_find(c_agent_id, sock);
@@ -251,6 +252,7 @@ void OS_Exec(int *execq, int *arq, int *sock, const Eventinfo *lf, const active_
                 if (atoi(major) < 4 || (atoi(major) == 4 && atoi(minor) < 2)) {
                     getActiveResponseInString(lf, ar, ip, user, filename, extra_args, msg);
                 } else {
+                    // version 4.4.1會進這邊
                     bool escape = atoi(major) == 4 && atoi(minor) == 2 && atoi(patch) < 5;
                     getActiveResponseInJSON(lf, ar, ar->ar_cmd->extra_args, msg, escape);
                 }

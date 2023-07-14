@@ -247,10 +247,12 @@ void * req_receiver(__attribute__((unused)) void * arg) {
 
         w_mutex_lock(&mutex_pool);
 
+        // 等待buffer有空間可以用
         while (empty(pool_i, pool_j)) {
             w_cond_wait(&pool_available, &mutex_pool);
         }
 
+        // req_pool[x] 裡面放有要request的message，可能像是一個的功能queue一樣
         node = req_pool[pool_j];
         forward(pool_j, request_pool);
         w_mutex_unlock(&mutex_pool);
@@ -285,6 +287,7 @@ void * req_receiver(__attribute__((unused)) void * arg) {
 
             // Send data
             if (OS_SendSecureTCP(node->sock, node->length, node->buffer) != 0) {
+                // 傳送失敗
                 merror("OS_SendSecureTCP(): %s", strerror(errno));
                 strcpy(buffer,"err Send data");
                 length = strlen(buffer);

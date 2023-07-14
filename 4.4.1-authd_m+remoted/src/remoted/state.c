@@ -27,6 +27,7 @@ static pthread_mutex_t agents_state_mutex = PTHREAD_MUTEX_INITIALIZER;
 static int rem_write_state();
 static char *refresh_time;
 
+// 這邊要去找secure.c裡面的remoted_agents_state變數，用來掌握agent state用的
 extern OSHash *remoted_agents_state;
 
 /**
@@ -137,7 +138,8 @@ void * rem_state_main() {
     sock = wdbc_connect();
 
     while (1) {
-        rem_write_state();
+        // JDelete : 這邊可能可以先拿掉，他是把state寫進一個local file中
+        // rem_write_state();
         sleep(interval);
         w_remoted_clean_agents_state(&sock);
     }
@@ -220,6 +222,7 @@ int rem_write_state() {
     return 0;
 }
 
+// 用agent_id來看list有沒有存在的agent，沒有就加進去。
 STATIC remoted_agent_state_t * get_node(const char *agent_id) {
     remoted_agent_state_t * agent_state = (remoted_agent_state_t *) OSHash_Get_ex(remoted_agents_state, agent_id);
 
@@ -244,6 +247,8 @@ STATIC void w_remoted_clean_agents_state(int *sock) {
         return;
     }
 
+    // 這邊會按照Status去query database，取得同等Status的Agent
+    // 而這邊是要取得active的agent
     if (active_agents = wdb_get_agents_ids_of_current_node(AGENT_CS_ACTIVE, sock, 0, -1), active_agents == NULL) {
         return;
     }
@@ -251,11 +256,17 @@ STATIC void w_remoted_clean_agents_state(int *sock) {
     char *agent_id = NULL;
     remoted_agent_state_t * agent_state = NULL;
 
+    // hash_node 可以取得agent的key value
     while (hash_node) {
+
+        // 先開始找第一個agent
         agent_id = hash_node->key;
 
+        // 指定好下一個node
         hash_node = OSHash_Next(remoted_agents_state, &inode_it, hash_node);
 
+        // 如果這個agent沒有出現在database中active agent list的話
+        // 就把他從hash之中把他刪了
         int exist = 0;
         for (size_t i = 0; active_agents[i] != -1; i++) {
             if (atoi(agent_id) == active_agents[i] ) {
@@ -264,6 +275,7 @@ STATIC void w_remoted_clean_agents_state(int *sock) {
             }
         }
 
+        // 找了一輪發現都沒有一樣的，就執行，把他從節點鐘刪掉
         if (exist == 0) {
             agent_state = (remoted_agent_state_t *)OSHash_Delete_ex(remoted_agents_state, agent_id);
             os_free(agent_state);

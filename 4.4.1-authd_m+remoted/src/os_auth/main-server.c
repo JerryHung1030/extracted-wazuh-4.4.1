@@ -470,11 +470,13 @@ int main(int argc, char **argv)
     }
 
     /* Start working threads */
-
+    minfo("JComment : thread_local_server was diabled by Jerry");
+    /* ############# JDelete : 先不放local_server的部分，這邊用來處理client的request
     if (status = pthread_create(&thread_local_server, NULL, (void *)&run_local_server, NULL), status != 0) {
         merror("Couldn't create thread: %s", strerror(status));
         return EXIT_FAILURE;
-    }
+    }*/
+    
 
     if (config.flags.remote_enrollment) {
         client_queue = queue_init(AUTH_POOL);
@@ -493,17 +495,23 @@ int main(int argc, char **argv)
     }
 
     if (!config.worker_node) {
+        mdebug1("JComment : thread_writer was diabled by Jerry");
+        // ############# JDelete : 先不放local_server的部分，這邊用來處理client的request
         if (status = pthread_create(&thread_writer, NULL, (void *)&run_writer, NULL), status != 0) {
             merror("Couldn't create thread: %s", strerror(status));
             return EXIT_FAILURE;
         }
+        
     }
 
     if (config.key_request.enabled) {
+        mwarn("JComment : key_request is diabled by Jerry");
+        /* ############# JDelete : 先不放local_server的部分，這邊用來處理client的request
         if (status = pthread_create(&thread_key_request, NULL, (void *)&run_key_request_main, NULL), status != 0) {
             merror("Couldn't create thread: %s", strerror(status));
             return EXIT_FAILURE;
         }
+        */
     }
 
     /* Join threads */
@@ -519,9 +527,12 @@ int main(int argc, char **argv)
         w_mutex_unlock(&mutex_keys);
         pthread_join(thread_writer, NULL);
     }
+
+    /* ############# JDelete : 先不放local_server的部分，這邊用來處理client的request
     if (config.key_request.enabled) {
         pthread_join(thread_key_request, NULL);
     }
+    */
 
     queue_free(client_queue);
     minfo("Exiting...");

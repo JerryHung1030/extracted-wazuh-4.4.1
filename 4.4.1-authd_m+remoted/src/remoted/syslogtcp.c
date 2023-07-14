@@ -149,6 +149,7 @@ void HandleSyslogTCP()
         }
 
         /* Accept new connections */
+        // 接收來自client來的request
         int client_socket = OS_AcceptTCP(logr.tcp_sock, srcip, IPSIZE);
         if (client_socket < 0) {
             mwarn("Accepting TCP connection from client failed: %s (%d)", strerror(errno), errno);
@@ -163,10 +164,12 @@ void HandleSyslogTCP()
         }
 
         /* Fork to deal with new client */
+        // fork出去處理新的client
+        // 如果是子process的話
         if (fork() == 0) {
             HandleClient(client_socket, srcip);
             exit(0);
-        } else {
+        } else { // 如果是父process的話
             childcount++;
 
             /* Close client socket, since the child is handling it */

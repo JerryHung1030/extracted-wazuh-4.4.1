@@ -251,6 +251,7 @@ void save_controlmsg(const keyentry * key, char *r_msg, size_t msg_length, int *
     int agent_id = 0;
     int result = 0;
 
+    // JNote : 這邊照理來說應該不會進來，因為我把agent端的request模組註解掉了
     if (strncmp(r_msg, HC_REQUEST, strlen(HC_REQUEST)) == 0) {
         char * counter = r_msg + strlen(HC_REQUEST);
         char * payload = NULL;
@@ -295,6 +296,7 @@ void save_controlmsg(const keyentry * key, char *r_msg, size_t msg_length, int *
             rem_inc_recv_ctrl_shutdown(key->id);
         }
     } else {
+        // 這邊應該是keepalive的msg，因為下面的counter有做動
         /* Clean msg and shared files (remove random string) */
         msg = r_msg;
 
@@ -356,6 +358,10 @@ void save_controlmsg(const keyentry * key, char *r_msg, size_t msg_length, int *
                 mwarn("Unable to save last keepalive and set connection status as pending for agent: %s", key->id);
             }
         } else if (is_shutdown) {
+            // 這邊代表是收到agent說要shutdown的訊息，
+            // 所以首先先更新資料庫Agent State->disconnected
+            // 再來就是要傳送stop msg給analysisd。
+            // JDelete : 但因為目前沒有要傳event給analysisd。所以這段就先沒有要留了。
             w_mutex_unlock(&lastmsg_mutex);
 
             agent_id = atoi(key->id);
@@ -365,7 +371,8 @@ void save_controlmsg(const keyentry * key, char *r_msg, size_t msg_length, int *
             if (OS_SUCCESS != result) {
                 mwarn("Unable to set connection status as disconnected for agent: %s", key->id);
             } else {
-                /* Generate alert */
+                /* JDelete : 刪了傳輸stop msg給analysisd的部分
+                // Generate alert
                 char srcmsg[OS_SIZE_256];
                 char msg[OS_SIZE_1024];
 
@@ -375,7 +382,7 @@ void save_controlmsg(const keyentry * key, char *r_msg, size_t msg_length, int *
                 snprintf(srcmsg, OS_SIZE_256, "[%s] (%s) %s", key->id, key->name, key->ip->ip);
                 snprintf(msg, OS_SIZE_1024, AG_STOP_MSG, key->name, key->ip->ip);
 
-                /* Send stopped message */
+                // Send stopped message
                 if (SendMSG(logr.m_queue, msg, srcmsg, SECURE_MQ) < 0) {
                     merror(QUEUE_ERROR, DEFAULTQUEUE, strerror(errno));
 
@@ -388,9 +395,12 @@ void save_controlmsg(const keyentry * key, char *r_msg, size_t msg_length, int *
                         // Something went wrong sending a message after an immediate reconnection...
                         merror(QUEUE_ERROR, DEFAULTQUEUE, strerror(errno));
                     }
-                }
+                }*/
             }
         } else {
+            // 接下來這邊做了兩件事
+            //     1. 找group
+            //     2. parse keepalive訊息
             /* Update message */
             mdebug2("save_controlmsg(): inserting '%s'", msg);
 
@@ -400,6 +410,7 @@ void save_controlmsg(const keyentry * key, char *r_msg, size_t msg_length, int *
 
             os_strdup(msg, data->message);
 
+            /* JDelete : 這邊是在找group用的，目前先不用
             if (OS_SUCCESS == lookfor_agent_group(key->id, data->message, &data->group, wdb_sock)) {
                 group_t *aux = NULL;
 
@@ -420,6 +431,7 @@ void save_controlmsg(const keyentry * key, char *r_msg, size_t msg_length, int *
             } else {
                 merror("Error getting group for agent '%s'", key->id);
             }
+            */
 
             w_mutex_unlock(&lastmsg_mutex);
 
@@ -465,10 +477,12 @@ void save_controlmsg(const keyentry * key, char *r_msg, size_t msg_length, int *
             os_strdup(AGENT_CS_ACTIVE, agent_data->connection_status);
             os_strdup(logr.worker_node ? "syncreq" : "synced", agent_data->sync_status);
 
+            /* JDelete : 這邊先不用，在處理那個shared file用的，
+            //           但DB那邊不知道會不會沒有收到這個欄位而產生error
             w_mutex_lock(&lastmsg_mutex);
 
             if (data->merged_sum[0] && (!agent_data->merged_sum || (strcmp(data->merged_sum, agent_data->merged_sum) != 0))) {
-                /* Mark data as changed and insert into queue */
+                // Mark data as changed and insert into queue
                 if (!data->changed) {
                     char *id;
                     os_strdup(key->id, id);
@@ -482,8 +496,10 @@ void save_controlmsg(const keyentry * key, char *r_msg, size_t msg_length, int *
             }
 
             w_mutex_unlock(&lastmsg_mutex);
+            */
 
             // Updating version and keepalive in global.db
+            // 目前這邊有問題
             result = wdb_update_agent_data(agent_data, wdb_sock);
 
             if (OS_INVALID == result) {
@@ -1622,7 +1638,8 @@ void *wait_for_msgs(__attribute__((unused)) void *none)
 
     return NULL;
 }
-/* Update shared files */
+/* Update shared files. (etc/shared/files.yml)*/
+// 這邊可能可以不用實作
 void *update_shared_files(__attribute__((unused)) void *none)
 {
     INTERVAL = getDefine_Int("remoted", "shared_reload", 1, 18000);

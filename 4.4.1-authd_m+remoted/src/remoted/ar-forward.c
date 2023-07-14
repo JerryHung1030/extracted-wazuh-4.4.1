@@ -34,10 +34,13 @@ void *AR_Forward(__attribute__((unused)) void *arg)
         merror_exit(QUEUE_ERROR, path, strerror(errno));
     }
 
+    minfo("JNote : Listening to AR queue.... (queue/alerts/ar)");
+
     /* Daemon loop */
     while (1) {
         if (OS_RecvUnix(arq, OS_MAXSTR - 1, msg)) {
 
+            minfo("Active response request received: %s", msg);
             mdebug2("Active response request received: %s", msg);
 
             /* Always zero the location */
@@ -97,6 +100,7 @@ void *AR_Forward(__attribute__((unused)) void *arg)
                          tmp_str);
             }
 
+            minfo("Active response sent: %s", msg_to_send);
             mdebug2("Active response sent: %s", msg_to_send);
 
             /* Send to ALL agents */
@@ -107,6 +111,7 @@ void *AR_Forward(__attribute__((unused)) void *arg)
                 key_lock_read();
 
                 for (unsigned int i = 0; i < keys.keysize; i++) {
+                    // 這邊代表Agent還活著，因為在法定斷線的時間內還有收到alive msg
                     if (keys.keyentries[i]->rcvd >= (time(0) - logr.global.agents_disconnection_time)) {
                         strncpy(agent_id, keys.keyentries[i]->id, KEYSIZE);
                         key_unlock();
@@ -122,6 +127,8 @@ void *AR_Forward(__attribute__((unused)) void *arg)
 
             /* Send to the remote agent that generated the event or to a pre-defined agent */
             else if (ar_location & (REMOTE_AGENT | SPECIFIC_AGENT)) {
+                // 這個function會把需要傳輸的資料拿去加密，然後準備好資料之後會push進nbqueue
+                // 然後用notify 通知 main可以傳送資料了
                 if (send_msg(ar_agent_id, msg_to_send, -1) >= 0) {
                     rem_inc_send_ar(ar_agent_id);
                 }

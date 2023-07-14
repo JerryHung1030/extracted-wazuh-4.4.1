@@ -17,7 +17,8 @@ TYPE="agent"
 
 ###  Do not modify below here ###
 AUTHOR="Wazuh Inc."
-DAEMONS="wazuh-modulesd wazuh-logcollector wazuh-syscheckd wazuh-agentd wazuh-execd"
+### JNote : 原本應該是 DAEMONS="wazuh-modulesd wazuh-logcollector wazuh-syscheckd  wazuh-agentd wazuh-execd"
+DAEMONS="wazuh-agentd wazuh-execd"
 
 # Reverse order of daemons
 SDAEMONS=$(echo $DAEMONS | awk '{ for (i=NF; i>1; i--) printf("%s ",$i); print $1; }')

@@ -1,3 +1,7 @@
+/* ************ JNote :
+ * 0620 - 加上註解
+ */ 
+
 /* Copyright (C) 2015, Wazuh Inc.
  * Copyright (C) 2009 Trend Micro Inc.
  * All rights reserved.
@@ -26,15 +30,17 @@ int sock_fail_time;
 /* Start the Message Queue with specific owner and permissions(Only for READ type). type: WRITE||READ */
 int StartMQWithSpecificOwnerAndPerms(const char *path, short int type, short int n_attempts, uid_t uid, gid_t gid, mode_t mode)
 {
+    // 如果是要READ的話，代表這個腳色是server，他會創建這個AF_UNIX，並bind他
     if (type == READ) {
+        // 就綁定到 Unix domain、DGRAM sockets，同時允許調用者指定所有者和權限位。
         return (OS_BindUnixDomainWithPerms(path, SOCK_DGRAM, OS_MAXSTR + 512, uid, gid, mode));
     }
-
+    // 如果是要write的話，代表這個角色是client，他要去connect這個unix domain socket
     /* We give up to 21 seconds for the other end to start */
     else {
         int rc = 0, sleep_time = 5;
         short int attempt = 0;
-
+        // 這邊會測試attempt次，
         // If n_attempts is 0, trying to reconnect infinitely
         while ((rc = OS_ConnectUnixDomain(path, SOCK_DGRAM, OS_MAXSTR + 256)), rc < 0){
             attempt++;
@@ -50,6 +56,7 @@ int StartMQWithSpecificOwnerAndPerms(const char *path, short int type, short int
         }
 
         mdebug1("Connected succesfully to '%s' after %d attempts", path, attempt);
+        // 設定rc
         mdebug1(MSG_SOCKET_SIZE, OS_getsocketsize(rc));
         return (rc);
     }
@@ -58,6 +65,7 @@ int StartMQWithSpecificOwnerAndPerms(const char *path, short int type, short int
 /* Start the Message Queue. type: WRITE||READ */
 int StartMQ(const char *path, short int type, short int n_attempts)
 {
+    // 這個path可能是"queue/sockets/queue"
     return StartMQWithSpecificOwnerAndPerms(path, type, n_attempts, getuid(), getgid(), 0660);
 }
 

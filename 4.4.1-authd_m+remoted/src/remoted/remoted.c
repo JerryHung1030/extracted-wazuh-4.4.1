@@ -34,13 +34,18 @@ void HandleRemote(int uid)
     int recv_timeout;    //timeout in seconds waiting for a client reply
     char * str_protocol = NULL;
 
+    /* JNote : 小知識科普 - 一般來說TCP會設定keepalive的機制
+     *    tcp_keepalive_time   : 一個發送心跳包的週期，DEFAUL-7200s(2hrs)
+     *    tcp_keepalive_intvl  : keepalive探測封包的發送間隔，DEFAUL-75s 
+     *    tcp_keepalive_probes : 在tcp_keepalive_time之後，沒有接收到對方確認，繼續發送探測封包次數，DEFAUL-9次
+     */
     recv_timeout = getDefine_Int("remoted", "recv_timeout", 1, 60);
-
     tcp_keepidle = getDefine_Int("remoted", "tcp_keepidle", 1, 7200);
     tcp_keepintvl = getDefine_Int("remoted", "tcp_keepintvl", 1, 100);
     tcp_keepcnt = getDefine_Int("remoted", "tcp_keepcnt", 1, 50);
 
     /* If syslog connection and allowips is not defined, exit */
+    /* JNote : 目前不會跑這邊了，因為我把syslog的地方擋下來了。可以直接跳過
     if (logr.conn[position] == SYSLOG_CONN) {
         if (logr.allowips == NULL) {
             minfo(NO_SYSLOG);
@@ -54,10 +59,10 @@ void HandleRemote(int uid)
                 tmp_ips++;
             }
         }
-    }
+    }*/
 
     // Set resource limit for file descriptors
-
+    // 設定最小跟最大的fd數量
     {
         nofile = getDefine_Int("remoted", "rlimit_nofile", 1024, 1048576);
         struct rlimit rlimit = { nofile, nofile };
@@ -69,14 +74,14 @@ void HandleRemote(int uid)
 
     /* If TCP is enabled then bind the TCP socket */
     if (logr.proto[position] & REMOTED_NET_PROTOCOL_TCP) {
-
+        // tcp_sock 就會是 server負責連線的socket了
         logr.tcp_sock = OS_Bindporttcp(logr.port[position], logr.lip[position], logr.ipv6[position]);
 
         if (logr.tcp_sock < 0) {
             merror_exit(BIND_ERROR, logr.port[position], errno, strerror(errno));
         }
         else if (logr.conn[position] == SECURE_CONN) {
-
+            // 這邊會設定tcp 這邊的keep alive資料
             if (OS_SetKeepalive(logr.tcp_sock) < 0) {
                 merror("OS_SetKeepalive failed with error '%s'", strerror(errno));
             }
@@ -91,14 +96,15 @@ void HandleRemote(int uid)
         }
     }
     /* If UDP is enabled then bind the UDP socket */
+    /* 這邊目前不會用到 
     if (logr.proto[position] & REMOTED_NET_PROTOCOL_UDP) {
-        /* Using UDP. Fast, unreliable... perfect */
+        // Using UDP. Fast, unreliable... perfect
         logr.udp_sock = OS_Bindportudp(logr.port[position], logr.lip[position], logr.ipv6[position]);
 
         if (logr.udp_sock < 0) {
             merror_exit(BIND_ERROR, logr.port[position], errno, strerror(errno));
         }
-    }
+    }*/
 
 
     /* Revoke privileges */
@@ -117,11 +123,13 @@ void HandleRemote(int uid)
         wm_strcat(&str_protocol, REMOTED_NET_PROTOCOL_TCP_STR, WM_STRCAT_NO_SEPARATOR);
     }
     // If UDP is enabled
+    /* JDelete : 這邊目前不會用到
     if (logr.proto[position] & REMOTED_NET_PROTOCOL_UDP) {
         wm_strcat(&str_protocol, REMOTED_NET_PROTOCOL_UDP_STR, (str_protocol == NULL) ? WM_STRCAT_NO_SEPARATOR : ',');
-    }
+    }*/
 
     /* This should never happen */
+    // str_protocol 會是 "TCP"
     if (str_protocol == NULL) {
         merror_exit(REMOTED_NET_PROTOCOL_NOT_SET);
     }
@@ -138,9 +146,13 @@ void HandleRemote(int uid)
         HandleSecure();
     }
     else if (logr.proto[position] == REMOTED_NET_PROTOCOL_TCP) {
-        HandleSyslogTCP();
+        merror_exit("JError : it should not be set to syslog-TCP!!!");
+        // JDelete : 先刪掉syslogTCP的功能，不能有這個
+        // HandleSyslogTCP();
     }
     else { /* If not, deal with syslog */
-        HandleSyslog();
+        merror_exit("JError : it should not be set to syslog-UDP!!!");
+        // JDelete : 先刪掉syslogUDP的功能，不能有這個
+        // HandleSyslog();
     }
 }

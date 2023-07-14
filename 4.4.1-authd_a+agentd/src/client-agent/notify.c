@@ -36,6 +36,7 @@ char *getsharedfiles()
         snprintf(ret, m_size, "%s merged.mg\n", md5sum);
     }
 
+    // ret = "x\0 merged.mg\n"
     return (ret);
 }
 
@@ -97,6 +98,8 @@ void run_notify()
 
 #ifndef ONEWAY_ENABLED
     /* Check if the server has responded */
+    // 這邊有一個參數 available_server 是server的有效期限
+    // 當超過這個有效期，就要重新handshake一次
     if ((curr_time - available_server) > agt->max_time_reconnect_try) {
         /* If response is not available, set lock and wait for it */
         mwarn(SERVER_UNAV);
@@ -113,6 +116,7 @@ void run_notify()
 #endif
 
     /* Check if the agent has to be reconnected */
+    // 當強迫超過一定要重新連線的區間時，就要重新做重連線的功能
     if (agt->force_reconnect_interval && (curr_time - last_connection_time) >= agt->force_reconnect_interval) {
         /* Set lock and wait for it */
         minfo("Wazuh Agent will be reconnected because of force reconnect interval");
@@ -145,24 +149,31 @@ void run_notify()
 
     /* Format labeled data
      * Limit maximum size of the labels to avoid truncation of the keep-alive message
+     * 限制max size of the labels避免keep-alive message被截斷
      */
     if (!tmp_labels[0] && labels_format(agt->labels, tmp_labels, OS_MAXSTR - OS_SIZE_2048) < 0) {
         mwarn("Too large labeled data. Not all labels will be shown in the keep-alive messages.");
     }
 
     /* Get shared files */
+    /* JDelete : 這邊不用傳送shared file了，先不打算實作group的概念
     struct stat stat_fd;
     if (!g_shared_mg_file_hash) {
+        // g_shared_mg_file_hash 會是 x\0 merged.mg
+        // merged.mg可能是要被group同步用
         g_shared_mg_file_hash = getsharedfiles();
         if (!g_shared_mg_file_hash) {
             merror(MEM_ERROR, errno, strerror(errno));
             return;
         }
-    } else if(stat(SHAREDCFG_FILE, &stat_fd) == -1 && ENOENT == errno) {
+    } 
+    // Get merged.mg attributes for FILE and put them in BUF:stat_fd
+    else if(stat(SHAREDCFG_FILE, &stat_fd) == -1 && ENOENT == errno) {
         clear_merged_hash_cache();
-    }
+    }*/
 
     time_t now = time(NULL);
+    // 如果上次更新距離現在已經超過參數 main_ip_update_interval 的話就要更新
     if ((now - last_update) >= agt->main_ip_update_interval) {
         // Update agent_ip considering main_ip_update_interval value
         last_update = now;
@@ -177,9 +188,16 @@ void run_notify()
         }
     }
     /* Create message */
+    // 進這邊代表有agent_ip，且沒有錯誤。
     if(*agent_ip != '\0' && strcmp(agent_ip, "Err")) {
         char label_ip[60];
+        // ex : label_ip 可能是 #"_agent_ip":192.xxx.xxx.xxx
         snprintf(label_ip, sizeof label_ip, "#\"_agent_ip\":%s", agent_ip);
+        // 如果上次修改 /etc/shared/agent.conf 的時間超過0，而且md5 hash這個file沒有錯誤的話
+        // 就把tmp_msg設定成 : #!-"uname" / "/etc/shared/agent.conf的md5sum" \n "merged.mg的md5 hash值"#"_agent_ip":192.xxx.xxx.xxx
+        
+        
+        /*JDelete : 這邊我要直接註解掉，因為沒有要傳送shared file
         if ((File_DateofChange(AGENTCONFIG) > 0 ) &&
                 (OS_MD5_File(AGENTCONFIG, md5sum, OS_TEXT) == 0)) {
             snprintf(tmp_msg, OS_MAXSTR - OS_HEADER_SIZE, "%s%s / %s\n%s%s%s\n", CONTROL_HEADER,
@@ -187,9 +205,15 @@ void run_notify()
         } else {
             snprintf(tmp_msg, OS_MAXSTR - OS_HEADER_SIZE, "%s%s\n%s%s%s\n", CONTROL_HEADER,
                     getuname(), tmp_labels, g_shared_mg_file_hash ? g_shared_mg_file_hash : no_hash_value, label_ip);
-        }
+        }*/
+
+        // JAdd : 因為沒有要加上shared_file，所以我自己封裝訊息。
+        snprintf(tmp_msg, OS_MAXSTR - OS_HEADER_SIZE, "%s%s\n%s%s\n", CONTROL_HEADER, getuname(), 
+                    tmp_labels, label_ip);
     }
+    // 進這邊代表沒有agent_ip
     else {
+        /*JDelete : 這邊我要直接註解掉，因為沒有要傳送shared file
         if ((File_DateofChange(AGENTCONFIG) > 0 ) &&
                 (OS_MD5_File(AGENTCONFIG, md5sum, OS_TEXT) == 0)) {
             snprintf(tmp_msg, OS_MAXSTR - OS_HEADER_SIZE, "%s%s / %s\n%s%s\n", CONTROL_HEADER,
@@ -197,11 +221,16 @@ void run_notify()
         } else {
             snprintf(tmp_msg, OS_MAXSTR - OS_HEADER_SIZE, "%s%s\n%s%s\n", CONTROL_HEADER,
                     getuname(), tmp_labels, g_shared_mg_file_hash ? g_shared_mg_file_hash : no_hash_value);
-        }
+        }*/
+        
+        //JAdd : 這邊因為我沒有要加上shared_file，所以我自己封裝訊息 (這邊是沒有ip訊息)
+        snprintf(tmp_msg, OS_MAXSTR - OS_HEADER_SIZE, "%s%s\n%s\n", CONTROL_HEADER, getuname(), tmp_labels);
     }
 
     /* Send status message */
+    // 傳送到server
     mdebug2("Sending keep alive: %s", tmp_msg);
+    minfo("Sending keep alive: %s", tmp_msg);
     send_msg(tmp_msg, -1);
 
     w_agentd_state_update(UPDATE_KEEPALIVE, (void *) &curr_time);

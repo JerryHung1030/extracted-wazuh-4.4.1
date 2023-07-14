@@ -14,7 +14,7 @@
 #define _SYS_INFO_H
 
 // Define EXPORTED for any platform
-#include "shared_modules/common/commonDefs.h" // JNote
+#include "shared_modules/common/commonDefs.h" // ************ JNote
 #ifdef WAZUH_UNIT_TESTING
 #define EXPORTED
 #else

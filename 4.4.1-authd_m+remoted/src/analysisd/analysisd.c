@@ -2119,64 +2119,8 @@ void * w_process_event_thread(__attribute__((unused)) void * id){
                 }
             }
 
-            /* Copy the structure to the state memory of if_matched_sid */
-            if (t_currently_rule->sid_prev_matched) {
-                OSListNode *node;
-                w_mutex_lock(&t_currently_rule->mutex);
-                if (node = OSList_AddData(t_currently_rule->sid_prev_matched, lf), !node) {
-                    merror("Unable to add data to sig list.");
-                } else {
-                    lf->sid_node_to_delete = node;
-                }
-                w_mutex_unlock(&t_currently_rule->mutex);
-            }
-            /* Group list */
-            else if (t_currently_rule->group_prev_matched) {
-                unsigned int j = 0;
-                OSListNode *node;
-
-                w_mutex_lock(&t_currently_rule->mutex);
-                os_calloc(t_currently_rule->group_prev_matched_sz, sizeof(OSListNode *), lf->group_node_to_delete);
-                while (j < t_currently_rule->group_prev_matched_sz) {
-                    if (node = OSList_AddData(t_currently_rule->group_prev_matched[j], lf), !node) {
-                        merror("Unable to add data to grp list.");
-                    } else {
-                        lf->group_node_to_delete[j] = node;
-                    }
-                    j++;
-                }
-                w_mutex_unlock(&t_currently_rule->mutex);
-            }
-
-            lf->queue_added = 1;
-            os_calloc(1, sizeof(Eventinfo), lf_logall);
-            w_copy_event_for_log(lf, lf_logall);
-            w_free_event_info(lf);
-            OS_AddEvent(lf, os_analysisd_last_events);
-            break;
-
         } while ((rulenode_pt = rulenode_pt->next) != NULL);
-
-        if (Config.logall || Config.logall_json){
-            if (!lf_logall) {
-                os_calloc(1, sizeof(Eventinfo), lf_logall);
-                w_copy_event_for_log(lf, lf_logall);
-            }
-            result = queue_push_ex(writer_queue, lf_logall);
-            if (result < 0) {
-                if (!reported_writer){
-                    mwarn("Archive writer queue is full. %d", t_id);
-                    reported_writer = 1;
-                }
-                Free_Eventinfo(lf_logall);
-            }
-        } else if (lf_logall) {
-            Free_Eventinfo(lf_logall);
-        }
-next_it:
-        if (!lf->queue_added) {
-            w_free_event_info(lf);
-        }
+        
     }
 }
 

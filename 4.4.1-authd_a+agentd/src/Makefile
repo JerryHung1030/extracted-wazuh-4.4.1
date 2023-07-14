@@ -722,7 +722,7 @@ BUILD_AGENT+=wazuh-agentd
 BUILD_AGENT+=agent-auth
 #BUILD_AGENT+=wazuh-logcollector
 #BUILD_AGENT+=wazuh-syscheckd
-#BUILD_AGENT+=wazuh-execd
+BUILD_AGENT+=wazuh-execd
 #BUILD_AGENT+=manage_agents
 BUILD_AGENT+=active-responses
 #BUILD_AGENT+=wazuh-modulesd
@@ -1866,8 +1866,9 @@ active_response_programs = default-firewall-drop pf npf ipfw firewalld-drop disa
 $(active_response_programs): ${WAZUH_LIB} ${WAZUHEXT_LIB}
 
 # Minimal dependencies for building active responses programs
-#AR_PROGRAMS_DEPS = os_regex/os_regex.o os_regex/os_regex_free_pattern.o os_regex/os_regex_compile.o os_regex/os_match_free_pattern.o os_regex/os_regex_maps.o os_regex/os_regex_execute.o os_regex/os_regex_free_pattern.o os_regex/os_match_execute.o os_regex/os_match_compile.o shared/expression.o shared/randombytes.o shared/validate_op.o shared/regex_op.o shared/string_op.o shared/exec_op.o shared/file_op_proc.o shared/debug_op_proc.o shared/time_op.o shared/privsep_op.o shared/version_op.o os_xml/os_xml.o os_xml/os_xml_access.o os_regex/os_regex_strbreak.o os_net/os_net.o
-AR_PROGRAMS_DEPS = os_regex/os_regex.o shared/expression.o shared/randombytes.o shared/validate_op.o shared/regex_op.o shared/string_op.o shared/exec_op.o shared/file_op_proc.o shared/debug_op_proc.o shared/time_op.o shared/privsep_op.o shared/version_op.o os_xml/os_xml.o os_net/os_net.o
+# JNote : 這邊需要多看一下
+AR_PROGRAMS_DEPS = os_regex/os_regex.o os_regex/os_regex_free_pattern.o os_regex/os_regex_compile.o os_regex/os_match_free_pattern.o os_regex/os_regex_maps.o os_regex/os_regex_execute.o os_regex/os_regex_free_pattern.o os_regex/os_match_execute.o os_regex/os_match_compile.o shared/expression.o shared/randombytes.o shared/validate_op.o shared/regex_op.o shared/string_op.o shared/exec_op.o shared/file_op_proc.o shared/debug_op_proc.o shared/time_op.o shared/privsep_op.o shared/version_op.o os_xml/os_xml.o os_xml/os_xml_access.o os_regex/os_regex_strbreak.o os_net/os_net.o
+#AR_PROGRAMS_DEPS = os_regex/os_regex.o shared/expression.o shared/randombytes.o shared/validate_op.o shared/regex_op.o shared/string_op.o shared/exec_op.o shared/file_op_proc.o shared/debug_op_proc.o shared/time_op.o shared/privsep_op.o shared/version_op.o os_xml/os_xml.o os_net/os_net.o
 
 ifneq (,$(filter ${TEST},YES yes y Y 1))
 AR_PROGRAMS_DEPS += unit_tests/wrappers/externals/pcre2/pcre2_wrappers.o
@@ -1882,49 +1883,48 @@ endif
 .PHONY: active-responses
 active-responses: ${active_response_programs}
 
-#active_response_c := $(wildcard active-response/*.c)
-#active_response_c += $(wildcard active-response/firewalls/*.c)
-#active_response_o := $(active_response_c:.c=.o)
+active_response_c := $(wildcard active-response/*.c)
+active_response_c += $(wildcard active-response/firewalls/*.c)
+active_response_o := $(active_response_c:.c=.o)
 
-#active-response/%.o: active-response/%.c
-#	${OSSEC_CC} ${OSSEC_CFLAGS} -I./active-response -DARGV0=\"active-responses\" -c $^ -o $@
+active-response/%.o: active-response/%.c
+	${OSSEC_CC} ${OSSEC_CFLAGS} -I./active-response -DARGV0=\"active-responses\" -c $^ -o $@
 
-#default-firewall-drop: active-response/firewalls/default-firewall-drop.o active-response/active_responses.o
-#	${OSSEC_CCBIN} ${AR_LDFLAGS} $^ ${OSSEC_LIBS} -o $@
+default-firewall-drop: active-response/firewalls/default-firewall-drop.o active-response/active_responses.o
+	${OSSEC_CCBIN} ${AR_LDFLAGS} $^ ${OSSEC_LIBS} -o $@
 
-#pf: active-response/firewalls/pf.o  active-response/active_responses.o
-#	${OSSEC_CCBIN} ${AR_LDFLAGS} $^ ${OSSEC_LIBS} -o $@
+pf: active-response/firewalls/pf.o  active-response/active_responses.o
+	${OSSEC_CCBIN} ${AR_LDFLAGS} $^ ${OSSEC_LIBS} -o $@
 
-#npf: active-response/firewalls/npf.o  active-response/active_responses.o
-#	${OSSEC_CCBIN} ${AR_LDFLAGS} $^ ${OSSEC_LIBS} -o $@
+npf: active-response/firewalls/npf.o  active-response/active_responses.o
+	${OSSEC_CCBIN} ${AR_LDFLAGS} $^ ${OSSEC_LIBS} -o $@
 
-#ipfw: active-response/firewalls/ipfw.o active-response/active_responses.o
-#	${OSSEC_CCBIN} ${AR_LDFLAGS} $^ ${OSSEC_LIBS} -o $@
+ipfw: active-response/firewalls/ipfw.o active-response/active_responses.o
+	${OSSEC_CCBIN} ${AR_LDFLAGS} $^ ${OSSEC_LIBS} -o $@
 
-#firewalld-drop: active-response/firewalld-drop.o active-response/active_responses.o
-#	${OSSEC_CCBIN} ${AR_LDFLAGS} $^ ${OSSEC_LIBS} -o $@
+firewalld-drop: active-response/firewalld-drop.o active-response/active_responses.o
+	${OSSEC_CCBIN} ${AR_LDFLAGS} $^ ${OSSEC_LIBS} -o $@
 
-#disable-account: active-response/disable-account.o active-response/active_responses.o
-#	${OSSEC_CCBIN} ${AR_LDFLAGS} $^ ${OSSEC_LIBS} -o $@
+disable-account: active-response/disable-account.o active-response/active_responses.o
+	${OSSEC_CCBIN} ${AR_LDFLAGS} $^ ${OSSEC_LIBS} -o $@
 
-#host-deny: active-response/host-deny.o active-response/active_responses.o
-#	${OSSEC_CCBIN} ${AR_LDFLAGS} $^ ${OSSEC_LIBS} -o $@
+host-deny: active-response/host-deny.o active-response/active_responses.o
+	${OSSEC_CCBIN} ${AR_LDFLAGS} $^ ${OSSEC_LIBS} -o $@
 
-#ip-customblock: active-response/ip-customblock.o active-response/active_responses.o
-#	${OSSEC_CCBIN} ${AR_LDFLAGS} $^ ${OSSEC_LIBS} -o $@
+ip-customblock: active-response/ip-customblock.o active-response/active_responses.o
+	${OSSEC_CCBIN} ${AR_LDFLAGS} $^ ${OSSEC_LIBS} -o $@
 
-#restart-wazuh: active-response/restart-wazuh.o active-response/active_responses.o
-#	${OSSEC_CCBIN} ${AR_LDFLAGS} $^ ${OSSEC_LIBS} -o $@
+restart-wazuh: active-response/restart-wazuh.o active-response/active_responses.o
+	${OSSEC_CCBIN} ${AR_LDFLAGS} $^ ${OSSEC_LIBS} -o $@
 
-#route-null: active-response/route-null.o active-response/active_responses.o
-#	${OSSEC_CCBIN} ${AR_LDFLAGS} $^ ${OSSEC_LIBS} -o $@
+route-null: active-response/route-null.o active-response/active_responses.o
+	${OSSEC_CCBIN} ${AR_LDFLAGS} $^ ${OSSEC_LIBS} -o $@
 
-#kaspersky: active-response/kaspersky.o active-response/active_responses.o
-#	${OSSEC_CCBIN} ${AR_LDFLAGS} $^ ${OSSEC_LIBS} -o $@
+kaspersky: active-response/kaspersky.o active-response/active_responses.o
+	${OSSEC_CCBIN} ${AR_LDFLAGS} $^ ${OSSEC_LIBS} -o $@
 
-#wazuh-slack: active-response/wazuh-slack.o active-response/active_responses.o
-#	${OSSEC_CCBIN} ${AR_LDFLAGS} $^ ${OSSEC_LIBS} -o $@
-
+wazuh-slack: active-response/wazuh-slack.o active-response/active_responses.o
+	${OSSEC_CCBIN} ${AR_LDFLAGS} $^ ${OSSEC_LIBS} -o $@
 
 ### libwazuhshared.so #########
 

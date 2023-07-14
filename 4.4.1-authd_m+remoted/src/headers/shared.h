@@ -250,7 +250,7 @@ extern const char *__local_name;
 #include "unit_tests/wrappers/common.h"
 #endif
 
-// JNote : 這邊我有改過，把一些header拿掉。
+// ************ JNote : 這邊我有改過，把一些header拿掉。
 
 #include "debug_op.h"
 #include "wait_op.h" // mq_op.c會用到os_wait_predicate(), os_wait()

@@ -214,6 +214,7 @@ int main(int argc, char **argv)
 
     /* Really start the program */
     i = 0;
+    // 這邊應該是跟具ossec.conf的remote設定決定要有幾個connection
     while (logr.conn[i] != 0) {
         /* Fork for each connection handler */
         if (fork() == 0) {

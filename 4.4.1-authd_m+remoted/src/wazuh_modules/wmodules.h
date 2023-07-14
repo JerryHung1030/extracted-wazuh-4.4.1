@@ -59,7 +59,7 @@ typedef enum crypto_type {
     SHA256SUM
 } crypto_type;
 
-// Inclusion of modules // JNote 先註解調一大部分。
+// Inclusion of modules // ************ JNote 先註解調一大部分。
 
 // #include "wm_oscap.h"
 #include "wm_database.h"

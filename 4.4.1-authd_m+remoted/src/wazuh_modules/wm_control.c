@@ -18,7 +18,7 @@
 
 #if defined (__linux__) || defined (__MACH__) || defined (sun) || defined(FreeBSD) || defined(OpenBSD)
 #include "wm_control.h"
-#include "../data_provider/include/sysInfo.h" // JNote
+#include "../data_provider/include/sysInfo.h" // ************ JNote
 #include "sym_load.h"
 #include "external/cJSON/cJSON.h"
 #include "file_op.h"

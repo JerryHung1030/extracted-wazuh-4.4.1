@@ -125,18 +125,23 @@ bool connect_server(int server_id, bool verbose)
 /* Send synchronization message to the server and wait for the ack */
 void start_agent(int is_startup)
 {
-
+    // 第一次一定會執行
     if (is_startup) {
+        // Initialize keys structure, counter, agent info and crypto method.
+        // If autoenrollment is enabled, a new key is requested to server and execution is blocked until a valid key is received.
         w_agentd_keys_init();
     }
 
     #ifdef ONEWAY_ENABLED
         return;
     #endif
+    // agt->rip_id是用來紀錄當前使用的server_id index
     int current_server_id = agt->rip_id;
+    // 這個迴圈是用來做hankshake用的
     while (1) {
         // (max_retries - 1) attempts
 
+        // 多次試著跟server做handshake
         for (int attempts = 0; attempts < agt->server[current_server_id].max_retries - 1; attempts++) {
             if (agent_handshake_to_server(current_server_id, is_startup)) {
                 return;
@@ -151,8 +156,10 @@ void start_agent(int is_startup)
             return;
         }
 
+        // 如果經過 agt->server[current_server_id].max_retries 次的嘗試都失敗的話
+        // 就再跟server註冊一次，然後更新鑰匙。再來做handshake一次
         // Try to enroll and extra attempt
-
+        
         if (agt->enrollment_cfg && agt->enrollment_cfg->enabled) {
             if (try_enroll_to_server(agt->server[current_server_id].rip, agt->server[current_server_id].network_interface) == 0) {
                 if (agent_handshake_to_server(current_server_id, is_startup)) {

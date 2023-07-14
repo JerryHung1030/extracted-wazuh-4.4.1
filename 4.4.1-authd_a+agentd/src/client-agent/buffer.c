@@ -159,6 +159,7 @@ void *dispatch_buffer(__attribute__((unused)) void * arg){
             w_cond_wait(&cond_no_empty, &mutex_lock);
         }
         /* Check if buffer usage reaches any lower level */
+        // 確定buffer現在的使用狀況，可能是正常、快滿了、滿了、溢出了
         switch (state) {
 
             case NORMAL:

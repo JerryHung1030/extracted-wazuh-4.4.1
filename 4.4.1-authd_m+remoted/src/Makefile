@@ -711,6 +711,8 @@ BUILD_SERVER+=wazuh-remoted
 #BUILD_SERVER+=wazuh-monitord
 #BUILD_SERVER+=wazuh-reportd
 BUILD_SERVER+=wazuh-authd
+# JAdd : add remote-ar-control module
+BUILD_SERVER+=j-ar-ctrl
 #BUILD_SERVER+=wazuh-analysisd
 #BUILD_SERVER+=wazuh-logtest-legacy
 #BUILD_SERVER+=wazuh-dbd -
@@ -769,7 +771,7 @@ $(error Do not use 'agent' directly, use 'TARGET=agent')
 endif
 agent: external ${CPPLIBDEPS}
 ifneq (${uname_S},HP-UX)
-# JNote 因為cmake的專案都被mark掉了這邊先註解
+# ************ JNote 因為cmake的專案都被mark掉了這邊先註解
 	${MAKE} ${BUILD_CMAKE_PROJECTS} 
 endif
 	${MAKE} ${BUILD_AGENT}
@@ -1275,7 +1277,7 @@ ifneq (${TARGET},agent)
 ifneq (${TARGET},winagent)
 	# Manager extra dependency
 #	EXTERNAL_RES += $(CPYTHON) jemalloc
-$(info ************ JNote - jemalloc has been commented out ************)
+$(info ************ ************ JNote - jemalloc has been commented out ************)
 endif
 endif
 EXTERNAL_DIR := $(EXTERNAL_RES:%=external/%)
@@ -2082,6 +2084,16 @@ os_integrator/%.o: os_integrator/%.c
 	${OSSEC_CC} ${OSSEC_CFLAGS}  -I./os_integrator -DARGV0=\"wazuh-integratord\" -c $^ -o $@
 
 wazuh-integratord: ${integrator_o}
+	${OSSEC_CCBIN} ${OSSEC_LDFLAGS} $^ ${OSSEC_LIBS} -o $@
+
+#### JAdd : 自己加的一個模組 - remote-ar-control #####
+r_ar_c := ${wildcard remote-ar-control/*.c}
+r_ar_o := $(r_ar_c:.c=.o)
+
+remote-ar-control/%.o: remote-ar-control/%.c
+	${OSSEC_CC} ${OSSEC_CFLAGS} -I./remote-ar-control -DARGV0=\"remote-ar-control\" -c $^ -o $@
+
+j-ar-ctrl: remote-ar-control/main.o os_net/os_net.o shared/file_op.o shared/privsep_op.o shared/debug_op.o shared/sig_op.o shared/mq_op.o
 	${OSSEC_CCBIN} ${OSSEC_LDFLAGS} $^ ${OSSEC_LIBS} -o $@
 
 #### analysisd #####

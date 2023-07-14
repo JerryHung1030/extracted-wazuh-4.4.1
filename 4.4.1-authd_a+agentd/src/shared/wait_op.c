@@ -21,10 +21,14 @@ void os_setwait()
     FILE *fp = NULL;
 
     /* For same threads */
+    // 打開一個queue/sockets/.wait檔案
+    // 
     __wait_lock = 1;
     fp = fopen(WAIT_FILE, "w");
 
     if (fp) {
+        // 寫入"1"這個數字後關閉
+        // 這邊應該是要讓其他模組看的
         fprintf(fp, "l");
         fclose(fp);
     }
