@@ -156,6 +156,7 @@ int ReadExecConfig()
  * If timeout is not NULL, write the timeout for that
  * command to it
  */
+// 這個name會是AR script的名字，ex : !route-null
 char *GetCommandbyName(const char *name, int *timeout)
 {
     int i = 0;

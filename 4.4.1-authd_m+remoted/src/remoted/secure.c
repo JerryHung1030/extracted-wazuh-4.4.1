@@ -223,11 +223,12 @@ void HandleSecure()
     }
 
     /* If UDP is set on the config, then the corresponding sockets is added to the watching list  */
+    /* JDelete : UDP先不用管
     if (protocol & REMOTED_NET_PROTOCOL_UDP) {
         if (wnotify_add(notify, logr.udp_sock, WO_READ) < 0) {
             merror_exit("wnotify_add(%d): %s (%d)", logr.udp_sock, strerror(errno), errno);
         }
-    }
+    }*/
 
     // Start looping
     while (1) {
@@ -259,9 +260,10 @@ void HandleSecure()
                 handle_new_tcp_connection(notify, &peer_info);
             }
             // If a new UDP connection was received and UDP is enabled
+            /*
             else if ((fd == logr.udp_sock) && (protocol & REMOTED_NET_PROTOCOL_UDP)) {
                 handle_incoming_data_from_udp_socket(&peer_info);
-            }
+            }*/
             // If a message was received through a TCP client and tcp is enabled
             // 這邊開一個socket開始listen，等到Agent傳送event過來後，會把他push進queue。
             // 之後上面已經開好的thread rem_handler_main 就會把資料pop出來做動作。

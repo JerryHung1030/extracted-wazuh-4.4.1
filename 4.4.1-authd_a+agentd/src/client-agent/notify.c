@@ -208,7 +208,7 @@ void run_notify()
         }*/
 
         // JAdd : 因為沒有要加上shared_file，所以我自己封裝訊息。
-        snprintf(tmp_msg, OS_MAXSTR - OS_HEADER_SIZE, "%s%s\n%s%s\n", CONTROL_HEADER, getuname(), 
+        snprintf(tmp_msg, OS_MAXSTR - OS_HEADER_SIZE, "%s%s\n%s%s", CONTROL_HEADER, getuname(), 
                     tmp_labels, label_ip);
     }
     // 進這邊代表沒有agent_ip
@@ -224,7 +224,7 @@ void run_notify()
         }*/
         
         //JAdd : 這邊因為我沒有要加上shared_file，所以我自己封裝訊息 (這邊是沒有ip訊息)
-        snprintf(tmp_msg, OS_MAXSTR - OS_HEADER_SIZE, "%s%s\n%s\n", CONTROL_HEADER, getuname(), tmp_labels);
+        snprintf(tmp_msg, OS_MAXSTR - OS_HEADER_SIZE, "%s%s\n%s", CONTROL_HEADER, getuname(), tmp_labels);
     }
 
     /* Send status message */

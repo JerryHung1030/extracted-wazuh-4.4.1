@@ -234,6 +234,7 @@ void ExecdRun(char *exec_msg, int *childcount)
     /* Get command to execute */
     // 到這邊的command就代表是除了wazuh-restart之外的指令
     // cmd[0] 是一個bin的full path
+
     cmd[0] = GetCommandbyName(name, &timeout_value);
     if (!cmd[0]) {
         ReadExecConfig();
@@ -252,10 +253,39 @@ void ExecdRun(char *exec_msg, int *childcount)
 
     /* Command parameters */
     cJSON_ReplaceItemInObject(json_root, "command", cJSON_CreateString(ADD_ENTRY));
+
     cJSON *json_origin = cJSON_GetObjectItem(json_root, "origin");
     cJSON_ReplaceItemInObject(json_origin, "module", cJSON_CreateString(ARGV0));
+
     cJSON *json_parameters = cJSON_GetObjectItem(json_root, "parameters");
     cJSON_AddItemToObject(json_parameters, "program", cJSON_CreateString(cmd[0]));
+
+
+    // ################ JAdd : 這邊我要自己加一下解除封鎖的功能 ##########################
+    //        1. 我會在parameters的obj下面加入一個item名叫unblock
+    //           如果有這個欄位的資料，我就把command改成"delete"
+    if ( cJSON_HasObjectItem(json_parameters, "unblock") ) {
+        mdebug1("(correct) Find unblock object from server's msg!!!");
+        cJSON *json_unblock = cJSON_GetObjectItem(json_parameters, "unblock");
+
+        // check if object format and value is true
+        if (cJSON_IsString(json_unblock) && strcmp("true", json_unblock->valuestring)==0 ) {
+            mdebug1("(correct) unblock object's string value is \"true\"!!");
+            cJSON_ReplaceItemInObject(json_root, "command", cJSON_CreateString(DELETE_ENTRY));
+        }else {
+            mdebug1("(wrong) unblock object's string value is not \"true\"!! but %s", json_unblock->valuestring);
+            if (cJSON_IsString(json_unblock)) {
+                mdebug1("(correct) is a string");
+            }
+            if ( strcmp("true", json_unblock->valuestring)==0 ) {
+                mdebug1("(correct) value is right");
+            }
+        }
+    } else {
+        mdebug1("(wrong) Can't find unblock object from server's msg!!!");
+    }
+   // ################################################################################
+
     // 這邊應該會是cmd+arg的一個 string
     cmd_parameters = cJSON_PrintUnformatted(json_root);
 
@@ -285,13 +315,15 @@ void ExecdRun(char *exec_msg, int *childcount)
 
         /* Set rkey initially with the name of the AR */
         memset(rkey, '\0', OS_SIZE_4096);
-        // cmd[0]是base名稱
+        // rkey : cmd[0]是base名稱 ex : route-null
         snprintf(rkey, OS_SIZE_4096 - 1, "%s", basename_ex(cmd[0]));
 
         keys_json = get_json_from_input(response);
         if (keys_json != NULL) {
+            // 這邊會得到一個 "check_keys" 的command
             const char *action = get_command_from_json(keys_json);
             if ((action != NULL) && (strcmp(CHECK_KEYS_ENTRY, action) == 0)) {
+                // 這邊取得的key就是src ip
                 char *keys = get_keys_from_json(keys_json);
                 if (keys != NULL) {
                     /* Append to rkey the alert keys that the AR script will use */
@@ -305,6 +337,7 @@ void ExecdRun(char *exec_msg, int *childcount)
         added_before = 0;
 
         /* We don't need to add to the list if the timeout_value == 0 */
+        // 這邊目前不會被執行，因為在config中timeout_value預設是0
         if (timeout_value) {
             if (repeated_hash != NULL) {
                 char *ntimes = NULL;

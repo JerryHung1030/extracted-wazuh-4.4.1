@@ -75,10 +75,12 @@ void AgentdStart(int uid, int gid, const char *user, const char *group)
 
     /* Create the queue and read from it. Exit if fails. */
     // m_queue 是 queue/sockets/queue
+    /* JDelete : 都先mark掉跟logcollecor溝通的地方
     if ((agt->m_queue = StartMQ(DEFAULTQUEUE, READ, 0)) < 0) {
         merror_exit(QUEUE_ERROR, DEFAULTQUEUE, strerror(errno));
-    }
+    }*/
 
+    /* JDelete : 都先mark掉跟logcollecor溝通的地方
 #ifdef HPUX
     {
         int flags;
@@ -88,6 +90,7 @@ void AgentdStart(int uid, int gid, const char *user, const char *group)
 #endif
 
     maxfd = agt->m_queue;
+    */
     agt->sock = -1;
 
     /* Create PID file - "wazuh-agentd"*/
@@ -203,7 +206,9 @@ void AgentdStart(int uid, int gid, const char *user, const char *group)
         FD_ZERO(&fdset);
         // FD_SET:fdset是用來在fdset中新增一個fd:agt->sock
         FD_SET(agt->sock, &fdset);
+        /* JDelete : 這邊先mark掉跟logcollector溝通的地方
         FD_SET(agt->m_queue, &fdset);
+        */
 
         // 設定select參數的timeout時間，時間是一秒。
         fdtimeout.tv_sec = 1;

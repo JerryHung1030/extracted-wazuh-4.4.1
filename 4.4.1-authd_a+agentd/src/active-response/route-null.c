@@ -17,12 +17,14 @@ int main (int argc, char **argv) {
     int action = OS_INVALID;
     cJSON *input_json = NULL;
 
+    // 檢查input的arg和格式正不正確，有可能是add cmd或del cmd
+    // 同時input_json也會被修改成execd傳過來的json string，其中包含version, origin, command, parameters
     action = setup_and_check_message(argv, &input_json);
     if ((action != ADD_COMMAND) && (action != DELETE_COMMAND)) {
         return OS_INVALID;
     }
 
-    // Get srcip
+    // 從input的arg取得src ip，這邊會是一個字串的ip
     const char *srcip = get_srcip_from_json(input_json);
     if (!srcip) {
         write_debug_file(argv[0], "Cannot read 'srcip' from data");
@@ -30,6 +32,7 @@ int main (int argc, char **argv) {
         return OS_INVALID;
     }
 
+    // 如果是add cmd的話
     if (action == ADD_COMMAND) {
         char **keys = NULL;
         int action2 = OS_INVALID;
@@ -38,6 +41,8 @@ int main (int argc, char **argv) {
         os_strdup(srcip, keys[0]);
         keys[1] = NULL;
 
+        // send_keys_and_check_message() 傳送一個key(srcip)過去給呼叫的execd
+        // 並execd等待回覆，看要不要繼續執行，回傳 CONTINUE_COMMAND | ABORT_COMMAND
         action2 = send_keys_and_check_message(argv, keys);
 
         os_free(keys);
@@ -65,10 +70,11 @@ int main (int argc, char **argv) {
         return OS_INVALID;
     }
 
+    // 如果收到的平台示lunux、freeBSD的話就執行
     if (!strcmp("Linux", uname_buffer.sysname)) {
         if (action == ADD_COMMAND) {
             char *exec_cmd1[5] = { ROUTE, "add", (char *)srcip, "reject", NULL };
-
+            // ex : noute add 140.92.164.111 reject
             wfd = wpopenv(ROUTE, exec_cmd1, W_BIND_STDERR);
             if (!wfd) {
                 write_debug_file(argv[0], "Unable to run route");
@@ -77,7 +83,7 @@ int main (int argc, char **argv) {
             }
         } else {
             char *exec_cmd1[5] = { ROUTE, "del", (char *)srcip, "reject", NULL };
-
+            // ex : noute del 140.92.164.111 reject
             wfd = wpopenv(ROUTE, exec_cmd1, W_BIND_STDERR);
             if (!wfd) {
                 write_debug_file(argv[0], "Unable to run route");
@@ -88,7 +94,7 @@ int main (int argc, char **argv) {
     } else if (!strcmp("FreeBSD", uname_buffer.sysname)) {
         if (action == ADD_COMMAND) {
             char *exec_cmd1[7] = { ROUTE, "-q", "add", (char *)srcip, "127.0.0.1", "-blackhole", NULL };
-
+            // noute-null -q add 140.92.164.111 127.0.0.1 -blackhole
             wfd = wpopenv(ROUTE, exec_cmd1, W_BIND_STDERR);
             if (!wfd) {
                 write_debug_file(argv[0], "Unable to run route");
@@ -97,7 +103,7 @@ int main (int argc, char **argv) {
             }
         } else {
             char *exec_cmd1[7] = { ROUTE, "-q", "delete", (char *)srcip, "127.0.0.1", "-blackhole", NULL };
-
+            // noute-null -q delete 140.92.164.111 127.0.0.1 -blackhole
             wfd = wpopenv(ROUTE, exec_cmd1, W_BIND_STDERR);
             if (!wfd) {
                 write_debug_file(argv[0], "Unable to run route");

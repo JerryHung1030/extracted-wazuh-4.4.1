@@ -210,7 +210,9 @@ int main(int argc, char **argv)
     mdebug2(STARTUP_MSG, (int)getpid());
 
     //Start shared download
+    /* JDelete : 先不用處理共用資料夾的問題
     w_init_shared_download();
+    */
 
     /* Really start the program */
     i = 0;

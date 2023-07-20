@@ -58,19 +58,21 @@ int setup_and_check_message(char **argv, cJSON **message) {
     write_debug_file(argv[0], "Starting");
 
     memset(input, '\0', OS_MAXSTR);
+    // 這邊會接收execd封裝好的json string
     if (fgets(input, OS_MAXSTR, stdin) == NULL) {
         write_debug_file(argv[0], "Cannot read input from stdin");
         return OS_INVALID;
     }
 
     write_debug_file(argv[0], input);
-
+    // 這邊來確認一下傳過來的json格式有沒有問題，需要包含version, origin, command, parameters
     input_json = get_json_from_input(input);
     if (!input_json) {
         write_debug_file(argv[0], "Invalid input format");
         return OS_INVALID;
     }
-
+    
+    // 這邊收到的action 會是 add or delete
     const char *action = get_command_from_json(input_json);
     if (!action) {
         write_debug_file(argv[0], "Cannot read 'command' from json");
@@ -102,6 +104,7 @@ int send_keys_and_check_message(char **argv, char **keys) {
     cJSON *input_json = NULL;
 
     // Build and send message with keys
+    // argv[0] 會是route-null的完整path
     keys_msg = build_json_keys_message(basename_ex(argv[0]), keys);
 
     write_debug_file(argv[0], keys_msg);
@@ -112,6 +115,7 @@ int send_keys_and_check_message(char **argv, char **keys) {
     os_free(keys_msg);
 
     // Read the response of previous message
+    // 這邊會去讀execd第二次傳過來的指令，用來判斷要不要繼續執行。
     memset(input, '\0', OS_MAXSTR);
     if (fgets(input, OS_MAXSTR, stdin) == NULL) {
         write_debug_file(argv[0], "Cannot read input from stdin");
@@ -247,6 +251,9 @@ const char* get_srcip_from_json(const cJSON *input) {
     }
 
     // Detect srcip from win.eventdata
+    // 這邊會先去看看data裡面的win、eventdata
+    // 如果沒有win或eventdata的obj，就會直接回傳NULL
+    // 要不就會回傳 ipAddress 或 destinationIp
     srcip_json = get_srcip_from_win_eventdata(data_json);
     if (cJSON_IsString(srcip_json)) {
         return srcip_json->valuestring;
